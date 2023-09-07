@@ -24,7 +24,7 @@ jobs:
         container: node:18-alpine
         volumes:
           - $(pwd):/
-        runs: |
+        run: |
           make web-build
       -
         name: Set up Go
