@@ -20,7 +20,6 @@ jobs:
           fetch-depth: 0
       -
         name: Build the website things
-        runs-on: ubuntu-latest
         container: node:18-alpine
         volumes:
           - $(pwd):/
