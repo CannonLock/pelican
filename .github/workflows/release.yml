@@ -21,7 +21,9 @@ jobs:
       -
         name: Build the website
         run: |
+          ls ./origin_ui/src
           make web-build
+          ls ./origin_ui/src/out
       -
         name: Set up Go
         uses: actions/setup-go@v4
