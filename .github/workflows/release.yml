@@ -19,6 +19,14 @@ jobs:
         with:
           fetch-depth: 0
       -
+        name: Build the website things
+        runs-on: ubuntu-latest
+        container: node:18-alpine
+        volumes:
+          - $(pwd):/
+        runs: |
+          make web-build
+      -
         name: Set up Go
         uses: actions/setup-go@v4
         with:
