@@ -1,6 +1,9 @@
 #FROM mcr.microsoft.com/devcontainers/go:0-1-bullseye
 FROM almalinux:8
 
+# Doing it caused bugs, so we're not doing it; More info here: https://pkg.go.dev/cmd/go
+ENV GOFLAGS="-buildvcs=false"
+
 # Create the xrootd user with a fixed GID/UID
 RUN groupadd -o -g 10940 xrootd
 RUN useradd -o -u 10940 -g 10940 -s /bin/sh xrootd
@@ -32,8 +35,11 @@ RUN npm install -g n && \
     npm install -g npm@latest \
     n prune
 
+COPY images/dev-config.yaml /etc/pelican/pelican.yaml
+
 WORKDIR /app
 
 CMD ["/bin/bash"]
 
+# Build with `docker build -t pelican-dev -f images/dev.Dockerfile .`
 # Run from repo root with `docker run -it -p 8444:8444 -v $PWD:/app  pelican-dev`
