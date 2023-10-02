@@ -1,5 +1,5 @@
 
-name: Release, Build, and Push
+name: Release, Build, and Push Dev Image
 
 on:
   push:
