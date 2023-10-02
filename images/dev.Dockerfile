@@ -12,7 +12,6 @@ RUN useradd -o -u 10940 -g 10940 -s /bin/sh xrootd
 
 RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 
-
 # Get goreleaser
 SHELL ["/bin/bash", "-c"]
 RUN echo $'[goreleaser] \n\
@@ -33,7 +32,9 @@ RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.8.linux-$TARGETARCH.ta
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Use npm to install node, update node, and then update npm
-RUN npm install -g n
+RUN npm install -g n && \
+    export PATH=$PATH:/usr/local/bin/n
+
 RUN n latest && \
     npm install -g npm@latest && \
     n prune
