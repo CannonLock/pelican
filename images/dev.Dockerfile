@@ -1,5 +1,7 @@
-#FROM mcr.microsoft.com/devcontainers/go:0-1-bullseye
 FROM almalinux:8
+
+# https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
 
 # Doing it caused bugs, so we're not doing it; More info here: https://pkg.go.dev/cmd/go
 ENV GOFLAGS="-buildvcs=false"
@@ -9,6 +11,7 @@ RUN groupadd -o -g 10940 xrootd
 RUN useradd -o -u 10940 -g 10940 -s /bin/sh xrootd
 
 RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
 
 # Get goreleaser
 SHELL ["/bin/bash", "-c"]
@@ -25,8 +28,8 @@ RUN yum clean all
 
 # Installing the right version of go
 SHELL ["/bin/sh", "-c"]
-RUN curl https://dl.google.com/go/go1.20.8.linux-arm64.tar.gz -o go1.20.8.linux-arm64.tar.gz 
-RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.8.linux-arm64.tar.gz
+RUN curl https://dl.google.com/go/go1.20.8.linux-$TARGETARCH.tar.gz -o go1.20.8.linux-$TARGETARCH.tar.gz
+RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.8.linux-$TARGETARCH.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Use npm to install node, update node, and then update npm
