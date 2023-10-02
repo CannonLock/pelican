@@ -22,7 +22,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: hub.opensciencegrid.org/pelican_platform/pelican-dev
+          images: hub.opensciencegrid.org/cannonlock/pelican-dev
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest-itb
