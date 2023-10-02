@@ -33,7 +33,7 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Use npm to install node, update node, and then update npm
 RUN npm install -g n && \
-    export PATH=$PATH:/usr/local/bin/n
+    export PATH=$PATH:/usr/lib/node_modules/npm/bin/n
 
 RUN n latest && \
     npm install -g npm@latest && \
