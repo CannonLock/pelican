@@ -31,13 +31,12 @@ RUN curl https://dl.google.com/go/go1.20.8.linux-$TARGETARCH.tar.gz -o go1.20.8.
 RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.8.linux-$TARGETARCH.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Use npm to install node, update node, and then update npm
+# Use npm to install node
 RUN npm install -g n
 ENV PATH="${PATH}:/usr/lib/node_modules/npm/bin"
 
-RUN echo $PATH
-
-RUN n latest && \
+# Update node lts, upgrade npm, clean up
+RUN n lts && \
     npm install -g npm@latest && \
     n prune
 
