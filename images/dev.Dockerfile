@@ -32,8 +32,10 @@ RUN rm -rf /usr/local/go && tar -C /usr/local -xzf go1.20.8.linux-$TARGETARCH.ta
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Use npm to install node, update node, and then update npm
-RUN npm install -g n && \
-    export PATH=$PATH:/usr/lib/node_modules/npm/bin
+RUN npm install -g n
+ENV PATH="${PATH}:/usr/lib/node_modules/npm/bin"
+
+RUN echo $PATH
 
 RUN n latest && \
     npm install -g npm@latest && \
