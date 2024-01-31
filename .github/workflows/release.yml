@@ -21,7 +21,7 @@ jobs:
       - name: Update npm version
         run: |
           cd web_ui/frontend
-          
+
           echo "NPM version is at the start is $(npm version)"
 
           # Get the current tag and set the package.json version to it
