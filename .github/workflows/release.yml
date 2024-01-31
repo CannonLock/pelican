@@ -22,7 +22,7 @@ jobs:
         run: |
           cd web_ui/frontend
           
-          npm version
+          echo "NPM version is at the start is $(npm version)"
 
           # Get the current tag and set the package.json version to it
           npm version ${GITHUB_REF_NAME:1}
