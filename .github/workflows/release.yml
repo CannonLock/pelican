@@ -21,6 +21,8 @@ jobs:
       - name: Update npm version
         run: |
           cd web_ui/frontend
+          
+          npm version
 
           # Get the current tag and set the package.json version to it
           npm version ${GITHUB_REF_NAME:1}
