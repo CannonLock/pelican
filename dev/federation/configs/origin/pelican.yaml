@@ -1,0 +1,30 @@
+TLSSkipVerify: true
+Federation:
+  DiscoveryUrl: "https://localhost:80"
+logging:
+  level: debug
+  origin:
+    scitokens: debug
+    xrootd: debug
+issuer:
+  authorizationtemplates:
+    - actions:
+        - read
+        - modify
+        - create
+      prefix: /
+origin:
+  Port: 8201
+  exports:
+    - capabilities:
+        - Writes
+        - Listings
+        - Reads
+        - DirectReads
+      federationprefix: /mnt
+      storageprefix: /data
+Server:
+  HostName: "localhost"
+  WebPort: 8200
+XRootD:
+  sitename: Origin

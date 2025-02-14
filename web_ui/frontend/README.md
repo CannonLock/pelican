@@ -17,7 +17,7 @@ as they would in production.
 ```shell
 # From repo root
 make pelican-build
-docker run --rm -it -p 8444:8444 -w /app -v $PWD/dist/pelican_linux_arm64_v8.0/:/app -v $PWD/local/:/etc/pelican/ hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb ./pelican serve --module director,registry,origin,cache
+docker run --rm -it -p 8444:8444 -p 8443:8443 -w /app -v $PWD/dist/pelican_linux_arm64_v8.0/:/app -v $PWD/local/:/etc/pelican/ hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb ./pelican serve --module director,registry,origin
 ```
 
 ```shell
@@ -73,3 +73,13 @@ docker run -it -p 3000:3000 -v $(pwd):/webapp origin-ui npm run dev
 ```
 
 You can also run if you have node installed locally via `npm install && npm run dev`.
+
+
+```shell
+pelican origin token create \
+    --scope "storage.read:/" \
+    --issuer https://localhost:8443 \
+    --claim "wlcg.ver=1.0" \
+    --subject origin \
+    --audience https://wlcg.cern.ch/jwt/v1/any
+```
