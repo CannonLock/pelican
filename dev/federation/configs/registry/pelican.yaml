@@ -1,0 +1,9 @@
+TLSSkipVerify: true
+Federation:
+  DiscoveryUrl: "https://localhost:80"
+Registry:
+  DBLocation: /etc/pelican
+  InstitutionsUrl: "https://topology-institutions.osg-htc.org/api/institution_ids"
+Server:
+  HostName: "localhost"
+  WebPort: 8300

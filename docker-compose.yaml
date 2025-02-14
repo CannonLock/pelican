@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  pelican-director:
+    image: hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb
+    container_name: pelican-director
+    working_dir: /app
+    volumes:
+      - ./dist/pelican_linux_arm64_v8.0/:/app
+      - ./local/:/etc/pelican/
+    ports:
+      - "8441:8444"
+    command: ["./pelican", "serve", "--module", "director"]
+    networks:
+      - pelican-network
+
+  pelican-origin:
+    image: hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb
+    container_name: pelican-origin
+    working_dir: /app
+    volumes:
+      - ./dist/pelican_linux_arm64_v8.0/:/app
+      - ./local/:/etc/pelican/
+    ports:
+      - "8442:8444"
+      - "8443:8443"
+    command: [ "./pelican", "serve", "--module", "director" ]
+    networks:
+      - pelican-network
+
+networks:
+  pelican-network:
+    driver: bridge
