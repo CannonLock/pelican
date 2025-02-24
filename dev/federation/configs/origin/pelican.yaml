@@ -15,6 +15,7 @@ issuer:
       prefix: /
 origin:
   Port: 8201
+  EnableOIDC: True
   exports:
     - capabilities:
         - Writes

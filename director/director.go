@@ -215,6 +215,14 @@ func getRequestParameters(req *http.Request) (requestParams url.Values) {
 	return
 }
 
+// Generates the web-client required CORS headers for the response
+func generateCorsHeaders(ginCtx *gin.Context) {
+	ginCtx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ginCtx.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	ginCtx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Pelican-User, X-Pelican-Timeout, X-Pelican-Token-Generation, X-Pelican-Authorization, X-Pelican-Namespace")
+	ginCtx.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Type, Authorization, X-Pelican-User, X-Pelican-Timeout, X-Pelican-Token-Generation, X-Pelican-Authorization, X-Pelican-Namespace")
+}
+
 // Generates the X-Pelican-Authorization header (when applicable) for responses that have
 // issued a request where token generation may be needed. This header informs the client
 // of the issuer that can be used to generate a token for the requested resource.
@@ -576,6 +584,9 @@ func redirectToCache(ginCtx *gin.Context) {
 	generateXAuthHeader(ginCtx, namespaceAd)
 	generateXTokenGenHeader(ginCtx, namespaceAd)
 
+	// Generate CORS headers
+	generateCorsHeaders(ginCtx)
+
 	var colUrl string
 	// If the namespace or the origin does not allow directory listings, then we should not advertise a collections-url.
 	// This is because the configuration of the origin/namespace should override the inclusion of "dirlisthost" for that origin.
@@ -588,6 +599,12 @@ func redirectToCache(ginCtx *gin.Context) {
 		}
 	}
 	generateXNamespaceHeader(ginCtx, namespaceAd, colUrl)
+
+	// If this is a HEAD request with the redirect=false query parameter, we should not redirect to the client
+	if ginCtx.Request.Method == http.MethodHead && ginCtx.Request.URL.Query().Get("redirect") == "false" {
+		ginCtx.Status(http.StatusOK)
+		return
+	}
 
 	// Note we only append the `authz` query parameter in the case of the redirect response and not the
 	// duplicate link metadata above.  This is purposeful: the Link header might get too long if we repeat
