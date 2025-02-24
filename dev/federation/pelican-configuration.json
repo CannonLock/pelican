@@ -1,6 +1,4 @@
 {
-  "discovery_endpoint": "https://localhost:80",
   "director_endpoint": "https://localhost:8400",
-  "namespace_registration_endpoint": "https://localhost:8300",
-  "jwks_uri": "https://localhost:80/public_key.jwks"
+  "namespace_registration_endpoint": "https://localhost:8300"
 }

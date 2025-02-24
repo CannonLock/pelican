@@ -328,6 +328,14 @@ func generateLinkHeader(ctx *gin.Context, sAds []server_structs.ServerAd, nsAd s
 	ctx.Writer.Header()["Link"] = []string{linkHeader}
 }
 
+// Generates the web-client required CORS headers for the response
+func generateCorsHeaders(ginCtx *gin.Context) {
+	ginCtx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ginCtx.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	ginCtx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Pelican-User, X-Pelican-Timeout, X-Pelican-Token-Generation, X-Pelican-Authorization, X-Pelican-Namespace")
+	ginCtx.Writer.Header().Set("Access-Control-Expose-Headers", "Content-Type, Authorization, X-Pelican-User, X-Pelican-Timeout, X-Pelican-Token-Generation, X-Pelican-Authorization, X-Pelican-Namespace")
+}
+
 // Generates the X-Pelican-Authorization header (when applicable) for responses that have
 // issued a request where token generation may be needed. This header informs the client
 // of the issuer that can be used to generate a token for the requested resource.
@@ -744,6 +752,13 @@ func redirectToCache(ginCtx *gin.Context) {
 	for _, ad := range oAds {
 		oServers = append(oServers, ad.ServerAd)
 	}
+
+	// Generate CORS headers
+	generateCorsHeaders(ginCtx)
+
+	// Generate CORS headers
+	generateCorsHeaders(ginCtx)
+
 
 	redirectSucceeded = true
 	generateRedirectResponse(ginCtx, chosenServers, oServers, oAds[0].NamespaceAd, requestId)
