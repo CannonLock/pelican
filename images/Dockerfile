@@ -64,7 +64,8 @@ ARG XROOTD_S3_HTTP_VER=0.4.1
 
 # Set scitokens-oauth2-server image as a build stage so that we can copy its
 # OA4MP installation into the images being built here.
-FROM --platform=linux/amd64 hub.opensciencegrid.org/sciauth/scitokens-oauth2-server:release-20231118-1823 AS scitokens-oauth2-server
+FROM scitokens-server:latest AS scitokens-oauth2-server
+# TODO: Fix this shit
 
 #################################################################
 # Pelican Build Base

@@ -101,11 +101,6 @@ func queryDirector(ctx context.Context, verb string, pUrl *pelican_url.PelicanUR
 		// Include the Client's version as a User-Agent header. The Director will decide
 		// if it supports the version, and provide an error message in the case that it
 		// cannot.
-		req.Header.Set("User-Agent", getUserAgent(""))
-
-		if token != "" {
-			req.Header.Set("Authorization", "Bearer "+token)
-		}
 
 		if log.IsLevelEnabled(log.DebugLevel) {
 			req.Header.Set("X-Pelican-Debug", "true")
@@ -113,6 +108,12 @@ func queryDirector(ctx context.Context, verb string, pUrl *pelican_url.PelicanUR
 
 		// Perform the HTTP request
 		resp, err = client.Do(req)
+
+		// If the status was not 307, print it out
+		if resp != nil && resp.StatusCode != http.StatusTemporaryRedirect {
+			log.Debugf("Director Request Failed: ", req)
+			log.Debugf("Director response: ", resp)
+		}
 
 		if err != nil {
 			log.Errorln("Failed to get response from the director:", err)
@@ -273,6 +274,8 @@ func GetDirectorInfoForPath(ctx context.Context, pUrl *pelican_url.PelicanURL, h
 			return
 		} else {
 			err = errors.Wrapf(err, "error while querying the director at %s", pUrl.FedInfo.DirectorEndpoint)
+			// Print out a error that indicates this was hit
+			log.Debugln("Failed to query the director:", err)
 			return
 		}
 	}

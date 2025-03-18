@@ -5,7 +5,6 @@ logging:
   level: debug
   origin:
     scitokens: debug
-    xrootd: debug
 issuer:
   authorizationtemplates:
     - actions:
@@ -16,6 +15,9 @@ issuer:
 origin:
   Port: 8201
   EnableOIDC: True
+  EnableIssuer: True
+  DirectorTest: false
+  SelfTest: false
   exports:
     - capabilities:
         - Writes
@@ -29,3 +31,6 @@ Server:
   WebPort: 8200
 XRootD:
   sitename: Origin
+  MaxStartupWait: 20s
+Transport:
+  ResponseHeaderTimeout: 60s

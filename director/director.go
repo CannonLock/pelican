@@ -759,6 +759,15 @@ func redirectToCache(ginCtx *gin.Context) {
 	// Generate CORS headers
 	generateCorsHeaders(ginCtx)
 
+	// If this is a HEAD request with the redirect=false query parameter, we should not redirect to the client
+	if ginCtx.Request.Method == http.MethodHead && ginCtx.Request.URL.Query().Get("redirect") == "false" {
+		ginCtx.Status(http.StatusOK)
+		return
+	} else if ginCtx.Request.Method == http.MethodOptions {
+		// If this is an OPTIONS request, we should not redirect to the client
+		ginCtx.Status(http.StatusOK)
+		return
+	}
 
 	redirectSucceeded = true
 	generateRedirectResponse(ginCtx, chosenServers, oServers, oAds[0].NamespaceAd, requestId)
@@ -826,6 +835,12 @@ func redirectToOrigin(ginCtx *gin.Context) {
 	oServers := make([]server_structs.ServerAd, 0, len(oAds))
 	for _, ad := range oAds {
 		oServers = append(oServers, ad.ServerAd)
+	}
+
+	// If we are doing a options request return the options headers no body
+	if ginCtx.Request.Method == http.MethodOptions {
+		ginCtx.String(http.StatusOK, "")
+		return
 	}
 
 	redirectSucceeded = true
@@ -915,7 +930,7 @@ func ShortcutMiddleware(defaultResponse string) gin.HandlerFunc {
 		// If we're configured for cache mode or we haven't set the flag,
 		// we should use cache middleware
 		if defaultResponse == "cache" {
-			if !strings.HasPrefix(c.Request.URL.Path, "/api/v1.0/director/") && (c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead) {
+			if !strings.HasPrefix(c.Request.URL.Path, "/api/v1.0/director/") && (c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead || c.Request.Method == http.MethodOptions) {
 				c.Request.URL.Path = "/api/v1.0/director/object" + c.Request.URL.Path
 				redirectToCache(c)
 				c.Abort()
@@ -925,7 +940,7 @@ func ShortcutMiddleware(defaultResponse string) gin.HandlerFunc {
 			// If the path starts with the correct prefix, continue with the next handler
 			c.Next()
 		} else if defaultResponse == "origin" {
-			if !strings.HasPrefix(c.Request.URL.Path, "/api/v1.0/director/") && (c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead) {
+			if !strings.HasPrefix(c.Request.URL.Path, "/api/v1.0/director/") && (c.Request.Method == http.MethodGet || c.Request.Method == http.MethodHead || c.Request.Method == http.MethodOptions) {
 				c.Request.URL.Path = "/api/v1.0/director/origin" + c.Request.URL.Path
 				redirectToOrigin(c)
 				c.Abort()
@@ -1616,6 +1631,13 @@ func collectDirectorRedirectionMetric(ctx *gin.Context, destination string) {
 	metrics.PelicanDirectorRedirectsTotal.With(labels).Inc()
 }
 
+func respondToOptionsRequest(ctx *gin.Context) {
+	generateCorsHeaders(ctx)
+	// We need to respond to OPTIONS requests with a 200 OK status code
+	// and an empty body to avoid the default behavior of returning a 404 Not Found.
+	ctx.String(http.StatusOK, "")
+}
+
 func RegisterDirectorAPI(ctx context.Context, router *gin.RouterGroup) {
 	egrp := ctx.Value(config.EgrpKey).(*errgroup.Group)
 
@@ -1624,6 +1646,7 @@ func RegisterDirectorAPI(ctx context.Context, router *gin.RouterGroup) {
 		// Establish the routes used for cache/origin redirection
 		directorAPIV1.GET("/object/*any", redirectToCache)
 		directorAPIV1.HEAD("/object/*any", redirectToCache)
+		directorAPIV1.OPTIONS("/object/*any", respondToOptionsRequest)
 		directorAPIV1.GET("/origin/*any", redirectToOrigin)
 		directorAPIV1.HEAD("/origin/*any", redirectToOrigin)
 		directorAPIV1.PUT("/origin/*any", redirectToOrigin)

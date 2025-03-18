@@ -19,7 +19,6 @@ services:
     network_mode: host
 
   origin:
-    restart: unless-stopped
     image: hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb
     working_dir: /app
     volumes:

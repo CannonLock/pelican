@@ -19,6 +19,7 @@
 package oa4mp
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -73,7 +74,7 @@ func oa4mpProxy(ctx *gin.Context) {
 	var userEncoded string
 	var user string
 	var groupsList []string
-	if ctx.Request.URL.Path == "/api/v1.0/issuer/device" {
+	if ctx.Request.URL.Path == "/api/v1.0/issuer/device" || ctx.Request.URL.Path == "/api/v1.0/issuer/authorize" {
 		web_ui.RequireAuthMiddleware(ctx)
 		if ctx.IsAborted() {
 			return
@@ -127,6 +128,30 @@ func oa4mpProxy(ctx *gin.Context) {
 	} else {
 		log.Debugln("Will proxy request to URL", ctx.Request.URL.String())
 	}
+
+	// Ensure the request body is not nil
+	if ctx.Request.Body == nil {
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, server_structs.SimpleApiResp{
+			Status: server_structs.RespFailed,
+			Msg:    "Request body is missing",
+		})
+		return
+	}
+
+	// Read the body to ensure it's not empty
+	bodyBytes, err := io.ReadAll(ctx.Request.Body)
+	log.Debugln("Request body:", string(bodyBytes))
+	if err != nil {
+		ctx.AbortWithStatusJSON(http.StatusInternalServerError, server_structs.SimpleApiResp{
+			Status: server_structs.RespFailed,
+			Msg:    "Unable to read request body",
+		})
+		return
+	}
+
+	// Reset the request body so it can be read again by RoundTrip
+	ctx.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
 	transport = getTransport()
 	resp, err := transport.RoundTrip(ctx.Request)
 	if err != nil {

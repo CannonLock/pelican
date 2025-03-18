@@ -535,15 +535,19 @@ func registerClient(dirResp server_structs.DirectorResponse) (*config.PrefixEntr
 	}
 
 	drcp := oauth2.DCRPConfig{ClientRegistrationEndpointURL: issuer.RegistrationURL, Transport: config.GetTransport(), Metadata: oauth2.Metadata{
-		RedirectURIs:            []string{"https://localhost/osdf-client"},
+		RedirectURIs:            []string{"https://localhost/osdf-client", "http://localhost:3000/"},
 		TokenEndpointAuthMethod: "client_secret_basic",
-		GrantTypes:              []string{"refresh_token", "urn:ietf:params:oauth:grant-type:device_code"},
+		GrantTypes:              []string{"refresh_token", "urn:ietf:params:oauth:grant-type:device_code", "authorization_code"},
 		ResponseTypes:           []string{"code"},
 		ClientName:              "OSDF Command Line Client",
 		Scopes:                  []string{"offline_access", "wlcg", "storage.read:/", "storage.modify:/", "storage.create:/"},
 	}}
 
 	resp, err := drcp.Register()
+
+	// Print out the response for debugging purposes
+	log.Errorf("Client registration response as json: %+v \n", resp)
+
 	if err != nil {
 		return nil, err
 	}
@@ -645,6 +649,7 @@ func AcquireToken(destination *url.URL, dirResp server_structs.DirectorResponse,
 	var acceptableToken *config.TokenEntry = nil
 	acceptableUnexpiredToken := ""
 	for idx, token := range prefixEntry.Tokens {
+		continue // TODO: Remove this
 		if !tokenIsAcceptable(token.AccessToken, destination.Path, dirResp, opts) {
 			continue
 		}
@@ -709,6 +714,7 @@ func AcquireToken(destination *url.URL, dirResp server_structs.DirectorResponse,
 		}
 	}
 
+	log.Debugln("Trying to acquire the token from the oauth library with prefixEntry: ", prefixEntry)
 	token, err := oauth2.AcquireToken(issuer, prefixEntry, dirResp, destination.Path, opts)
 	if errors.Is(err, oauth2.ErrUnknownClient) {
 		// We use anonymously-registered clients; OA4MP can periodically garbage collect these to prevent DoS

@@ -165,6 +165,7 @@ func (c *DCRPConfig) Register() (*Response, error) {
 		return nil, err
 	}
 	req, err := newHTTPRequest(c.ClientRegistrationEndpointURL, c.InitialAccessToken, jsonMetadata)
+	log.Debugf("Request to be sent: %+v \n", req)
 	if err != nil {
 		return nil, err
 	}
