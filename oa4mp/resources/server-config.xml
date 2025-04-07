@@ -45,6 +45,11 @@
           <blacklist/>
         </unusedClientCleanup>
 
+        <myproxy
+            host="localhost"
+            port="8200"
+        />
+
         <logging
                 logFileName="/dev/stdout"
                 logName="scitokens-server"

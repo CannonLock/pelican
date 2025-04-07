@@ -31,6 +31,6 @@ Server:
   WebPort: 8200
 XRootD:
   sitename: Origin
-  MaxStartupWait: 20s
+  MaxStartupWait: 30s
 Transport:
   ResponseHeaderTimeout: 60s

@@ -540,7 +540,7 @@ func registerClient(dirResp server_structs.DirectorResponse) (*config.PrefixEntr
 		GrantTypes:              []string{"refresh_token", "urn:ietf:params:oauth:grant-type:device_code", "authorization_code"},
 		ResponseTypes:           []string{"code"},
 		ClientName:              "OSDF Command Line Client",
-		Scopes:                  []string{"offline_access", "wlcg", "storage.read:/", "storage.modify:/", "storage.create:/"},
+		Scopes:                  []string{"storage.read:/", "storage.modify:/", "storage.create:/"},
 	}}
 
 	resp, err := drcp.Register()
