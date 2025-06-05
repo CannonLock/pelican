@@ -688,6 +688,12 @@ func processSortedAdsErr(ginCtx *gin.Context, err error, requestId uuid.UUID) {
 }
 
 func redirectToCache(ginCtx *gin.Context) {
+
+	ctx, err := json.Marshal(ginCtx.Request.Context())
+	if err != nil {
+		log.Debugf("We have entered the director redirectToCache function with context: %+v", string(ctx))
+	}
+
 	// Later we'll collect metrics for which service we sent the user to. For now, assume
 	// we're sending them to a cache.
 	chosenService := "cache"
@@ -752,9 +758,6 @@ func redirectToCache(ginCtx *gin.Context) {
 	for _, ad := range oAds {
 		oServers = append(oServers, ad.ServerAd)
 	}
-
-	// Generate CORS headers
-	generateCorsHeaders(ginCtx)
 
 	// Generate CORS headers
 	generateCorsHeaders(ginCtx)
@@ -1632,6 +1635,9 @@ func collectDirectorRedirectionMetric(ctx *gin.Context, destination string) {
 }
 
 func respondToOptionsRequest(ctx *gin.Context) {
+
+	log.Debugf("Received OPTIONS request for %s", ctx.Request.URL.Path)
+
 	generateCorsHeaders(ctx)
 	// We need to respond to OPTIONS requests with a 200 OK status code
 	// and an empty body to avoid the default behavior of returning a 404 Not Found.
@@ -1640,6 +1646,10 @@ func respondToOptionsRequest(ctx *gin.Context) {
 
 func RegisterDirectorAPI(ctx context.Context, router *gin.RouterGroup) {
 	egrp := ctx.Value(config.EgrpKey).(*errgroup.Group)
+
+	// Print out a log statement so we know what version is running
+	log.Debugf("Starting Pelican Director API v%s", "s")
+	gin.SetMode(gin.DebugMode)
 
 	directorAPIV1 := router.Group("/api/v1.0/director", web_ui.ServerHeaderMiddleware)
 	{

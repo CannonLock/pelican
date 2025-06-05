@@ -7,7 +7,7 @@ Federation:
   DiscoveryUrl: "https://localhost:80"
 xrootd:
   sitename: Cache
-  MaxStartupWait: 20s
+  MaxStartupWait: 60s
 Cache:
   Port: 8101
 Server:
