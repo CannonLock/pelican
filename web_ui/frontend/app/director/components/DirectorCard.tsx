@@ -85,7 +85,7 @@ export const DirectorCard = ({ server, authenticated }: DirectorCardProps) => {
                 server?.webUrl && (
                   <Box ml={1}>
                     <Link
-                      href={`/director/metrics/${server.type.toLowerCase()}/?server_name=${server.name}`}
+                      href={`/director/metrics/${server.type.toLowerCase()}s/view/?server_name=${server.name}`}
                       target={'_blank'}
                     >
                       <Tooltip title={'View Server Metrics'}>

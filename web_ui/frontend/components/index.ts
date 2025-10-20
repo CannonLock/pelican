@@ -9,3 +9,6 @@ export * from './MarkdownRender';
 
 export { default as GeoIpErrorDisplay } from './GeoIpErrorDisplay';
 export * from './GeoIpErrorDisplay';
+
+export { default as TextSkeleton } from './TextSkeleton';
+export * from './TextSkeleton';

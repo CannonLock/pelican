@@ -47,7 +47,8 @@ ChartJS.register(
   Colors
 );
 
-const TransferRateGraph = ({
+const
+  TransferRateGraph = ({
   server_name = undefined,
 }: {
   server_name?: string;

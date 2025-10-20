@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 
 import { PaddedContent } from '@/components/layout';
-import MetricLayout from '@/components/layout/MetricLayout';
+import GraphProvider from '@/components/graphs/GraphContext';
+import AuthenticatedContent from '@/components/layout/AuthenticatedContent';
 
 export const metadata = {
   title: 'Metrics',
@@ -10,7 +11,15 @@ export const metadata = {
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
     <PaddedContent>
-      <MetricLayout>{children}</MetricLayout>
+      <GraphProvider>
+        <AuthenticatedContent
+          allowedRoles={['admin']}
+          trustThenValidate={true}
+          redirect={true}
+        >
+          {children}
+        </AuthenticatedContent>
+      </GraphProvider>
     </PaddedContent>
   );
 };

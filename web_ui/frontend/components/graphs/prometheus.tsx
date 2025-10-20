@@ -260,6 +260,12 @@ export interface PrometheusQuery {
   datasetOptions?: TypeOrTypeFunction<Partial<ChartDataset<'line'>>>;
 }
 
+/**
+ * Replace the query parameters in a prometheus query string
+ * For example: replace `${range}` with the actual range value
+ * @param q
+ * @param qp
+ */
 export const replaceQueryParameters = (
   q: string,
   qp: Partial<Omit<QueryOptions, 'time'>>

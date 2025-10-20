@@ -6,9 +6,9 @@ import { TimeDuration, TimeDurationString } from '@/components';
 
 const defaultGraphContext = {
   time: DateTime.fromISO('2024-01-01T00:00:00Z'),
-  range: TimeDuration.fromString('1d'),
-  resolution: TimeDuration.fromString('60m'),
-  rate: TimeDuration.fromString('60m'),
+  range: TimeDuration.fromString('1w'),
+  resolution: TimeDuration.fromString('90m'),
+  rate: TimeDuration.fromString('4h'),
 };
 
 export const GraphContext =
