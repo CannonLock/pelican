@@ -1,24 +1,23 @@
+"use client";
+
 import { ServerGeneral } from '@/types';
-import { ReactNode, useContext, useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { GraphContext } from '@/components/graphs/GraphContext';
 import {
   query_raw,
   replaceQueryParameters,
   SuccessResponse,
-  TextSkeleton,
   VectorResponseData,
 } from '@/components';
-import { Box, BoxProps, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import humanReadableSeconds from '@/helpers/humanReadableSeconds';
 import { toBytesString } from '@/helpers/bytes';
 import useApiSWR from '@/hooks/useApiSWR';
 import { fetchApi } from '@/helpers/api';
+import { ColumnConfig, DataTable, toPercentage } from '@/components/DataTable';
+import useSWR from 'swr';
 
-interface CacheTableProps {
-  caches: ServerGeneral[];
-}
 
-const CacheTable = ({caches}: CacheTableProps) => {
+const CacheTable = () => {
 
   const { rate, time, resolution, range } = useContext(GraphContext);
 
@@ -32,108 +31,156 @@ const CacheTable = ({caches}: CacheTableProps) => {
     return servers?.filter(x => x.type === "Cache");
   }, [servers])
 
-  const {data: oneDayAccessBytes, isLoading: oneDayAccessBytesLoading} = useSWR(
-    ["/director_ui/metrics/caches/one_day_access_bytes", time],
-    async () => query_raw<VectorResponseData>(replaceQueryParameters("sum by (server_name,type) (increase(xrootd_cache_access_bytes[${range}]))", {range}), time.toSeconds())
+  const {data: variableHitBytes, isLoading: variableHitBytesLoading} = useSWR(
+    ["/director_ui/metrics/caches/one_day_hit_bytes", time],
+    async () => query_raw<VectorResponseData>(replaceQueryParameters('sum by (server_name,type) (increase(xrootd_cache_access_bytes{type="hit"}[${range}]))', {range}), time.toSeconds())
   )
 
-  const {data: oneMonthAccessBytes, isLoading: oneMonthAccessBytesLoading} = useSWR(
-    ["/director_ui/metrics/caches/one_month_access_bytes", time],
-    async () => query_raw<VectorResponseData>('sum by (server_name,type) (increase(xrootd_cache_access_bytes[30d]))', time.toSeconds())
+  const {data: oneMonthHitBytes, isLoading: oneMonthHitBytesLoading} = useSWR(
+    ["/director_ui/metrics/caches/one_month_hit_bytes", time],
+    async () => query_raw<VectorResponseData>('sum by (server_name,type) (increase(xrootd_cache_access_bytes{type="hit"}[30d]))', time.toSeconds())
+  )
+
+  const {data: variableMissBytes, isLoading: variableMissBytesLoading} = useSWR(
+    ["/director_ui/metrics/caches/one_day_miss_bytes", time],
+    async () => query_raw<VectorResponseData>(replaceQueryParameters('sum by (server_name,type) (increase(xrootd_cache_access_bytes{type="to_disk"}[${range}]))', {range}), time.toSeconds())
+  )
+
+  const {data: oneMonthMissBytes, isLoading: oneMonthMissBytesLoading} = useSWR(
+    ["/director_ui/metrics/caches/one_month_miss_bytes", time],
+    async () => query_raw<VectorResponseData>('sum by (server_name,type) (increase(xrootd_cache_access_bytes{type="to_disk"}[30d]))', time.toSeconds())
   )
 
   const {data: filesOpened, isLoading: filesOpenedLoading} = useSWR(
     ["/director_ui/metrics/caches/files_closed", time, caches],
-    async () => {
-      const response = await query_raw<VectorResponseData>(replaceQueryParameters('increase(xrootd_cache_eviction_dir_files_count{dir_name="/",type="opened"}[${range}])', {range}), time.toSeconds())
-      return cacheMetricMap(caches, response)
-    }
+    async () => query_raw<VectorResponseData>(replaceQueryParameters('increase(xrootd_cache_eviction_dir_files_count{dir_name="/",type="opened"}[${range}])', {range}), time.toSeconds())
   )
 
   const {data: filesRemoved, isLoading: filesRemovedLoading} = useSWR(
     ["/director_ui/metrics/caches/files_removed", time, caches],
-    async () => {
-      const response = await query_raw<VectorResponseData>(replaceQueryParameters('increase(xrootd_cache_eviction_dir_files_count{dir_name="/",type="removed"}[${range}])', {range}), time.toSeconds())
-      return cacheMetricMap(caches, response)
-    }
+    async () =>  query_raw<VectorResponseData>(replaceQueryParameters('increase(xrootd_cache_eviction_dir_files_count{dir_name="/",type="removed"}[${range}])', {range}), time.toSeconds())
   )
 
   const {data: lastAccess, isLoading: lastAccessLoading} = useSWR(
     ["/director_ui/metrics/caches/last_access", time, caches],
-    async () => {
-      const response = await query_raw<VectorResponseData>('xrootd_cache_eviction_dir_last_access_time_seconds{dir_name="/",type="open"}', time.toSeconds())
-      return cacheMetricMap(caches, response)
-    }
+    async () => await query_raw<VectorResponseData>('xrootd_cache_eviction_dir_last_access_time_seconds{dir_name="/",type="open"}', time.toSeconds())
   )
 
   const {data: totalBytes, isLoading: totalBytesLoading} = useSWR(
     ["/director_ui/metrics/caches/total_bytes", time, caches],
-    async () => {
-      const response = await query_raw<VectorResponseData>('xrootd_cache_eviction_disk_total_bytes', time.toSeconds())
-      return cacheMetricMap(caches, response)
-    }
+    async () => await query_raw<VectorResponseData>('xrootd_cache_eviction_disk_total_bytes', time.toSeconds())
   )
 
   const {data: totalCachedBytes, isLoading: totalCachedBytesLoading} = useSWR(
     ["/director_ui/metrics/caches/total_usage_bytes", time, caches],
-    async () => {
-      const response = await query_raw<VectorResponseData>('xrootd_cache_eviction_disk_usage_bytes', time.toSeconds())
-      return cacheMetricMap(caches, response)
-    }
+    async () => query_raw<VectorResponseData>('xrootd_cache_eviction_disk_usage_bytes', time.toSeconds())
   )
 
+  const columnConfig: ColumnConfig<any>[] = [
+    {
+      key: 'name',
+      label: 'Cache Server',
+      isLoading: cachesLoading,
+      sort: (a: string, b: string) => a.localeCompare(b),
+    },
+    {
+      key: 'variableHitrate',
+      label: `Cache Hit Rate ( ${range.toString()} )`,
+      headerProps: { sx: {textAlign: 'end'}},
+      cellProps: { sx: {textAlign: 'end'}},
+      formatter: toPercentage,
+      isLoading: variableHitBytesLoading || variableMissBytesLoading,
+    },
+    {
+      key: 'monthHitrate',
+      label: 'Cache Hit Rate ( 30d )',
+      headerProps: { sx: {textAlign: 'end'}},
+      cellProps: { sx: {textAlign: 'end'}},
+      formatter: toPercentage,
+      isLoading: oneMonthHitBytesLoading || oneMonthMissBytesLoading,
+    },
+    {
+      key: 'filesOpened',
+      label: 'Files Opened',
+      headerProps: { sx: {textAlign: 'end'}},
+      cellProps: { sx: {textAlign: 'end'}},
+      formatter: (x: string) => parseInt(x).toLocaleString(),
+      isLoading: filesOpenedLoading,
+    },
+    // {
+    //   key: 'filesRemoved',
+    //   label: 'Files Removed',
+    //   headerProps: { sx: {textAlign: 'end'}},
+    //   cellProps: { sx: {textAlign: 'end'}},
+    //   formatter: (x: string) => parseInt(x).toLocaleString(),
+    //   isLoading: filesRemovedLoading,
+    // },
+    {
+      key: 'timeSinceAccess',
+      label: 'Time Since Access',
+      headerProps: { sx: {textAlign: 'end'}},
+      cellProps: { sx: {textAlign: 'end'}},
+      formatter: humanReadableSeconds,
+      isLoading: lastAccessLoading,
+    },
+    {
+      key: 'cachedObjectsSize',
+      label: 'Cached Objects Size',
+      headerProps: { sx: {textAlign: 'end'}},
+      cellProps: { sx: {textAlign: 'end'}},
+      formatter: (x: string) => toBytesString(parseInt(x)),
+      isLoading: totalCachedBytesLoading,
+    },
+    {
+      key: 'totalCacheSize',
+      label: 'Total Cache Size',
+      headerProps: { sx: {textAlign: 'end'}},
+      cellProps: { sx: {textAlign: 'end'}},
+      formatter: (x: string) => toBytesString(parseInt(x)),
+      isLoading: totalBytesLoading,
+    }
+  ]
 
+  const data = useMemo(() => {
+    return caches?.map(c => {
+
+      const responseToMetric = (metricResponse?: SuccessResponse<VectorResponseData>) => serverToMetric(c.name, metricResponse);
+
+      const variableHitRate = responseToMetric(variableHitBytes)
+      const variableMissRate = responseToMetric(variableMissBytes)
+      const oneMonthHitRate = responseToMetric(oneMonthHitBytes)
+      const oneMonthMissRate = responseToMetric(oneMonthMissBytes)
+      const filesOpenedMetric = responseToMetric(filesOpened)
+      const filesRemovedMetric = responseToMetric(filesRemoved)
+      const lastAccessMetric = responseToMetric(lastAccess)
+      const totalCachedBytesMetric = responseToMetric(totalCachedBytes)
+      const totalBytesMetric = responseToMetric(totalBytes)
+
+      return {
+        name: c.name,
+        variableHitrate: variableHitRate && variableMissRate ? parseFloat(variableHitRate) / (parseFloat(variableHitRate) + parseFloat(variableMissRate)) : undefined,
+        monthHitrate: oneMonthHitRate && oneMonthMissRate ? parseFloat(oneMonthHitRate) / (parseFloat(oneMonthHitRate) + parseFloat(oneMonthMissRate)) : undefined,
+        filesOpened: filesOpenedMetric ? parseInt(filesOpenedMetric) : undefined,
+        filesRemoved: filesRemovedMetric ? parseInt(filesRemovedMetric) : undefined,
+        timeSinceAccess: lastAccessMetric ? time.toSeconds() - parseInt(lastAccessMetric) : undefined,
+        cachedObjectsSize: totalCachedBytesMetric ? parseInt(totalCachedBytesMetric) : undefined,
+        totalCacheSize: totalBytesMetric ? parseInt(totalBytesMetric) : undefined,
+      }
+    })
+  }, [caches, variableHitBytes, variableMissBytes, oneMonthHitBytes, oneMonthMissBytes, filesOpened, filesRemoved, lastAccess, totalCachedBytes, totalBytes, time])
 
   return (
-    <TableContainer>
-      <Table  stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell>Cache Server</TableCell>
-            <TableCell align="right">Cache Hit Rate ( {range.toString()} )</TableCell>
-            <TableCell align="right">Cache Hit Rate ( 30d )</TableCell>
-            <TableCell align="right">Files Opened</TableCell>
-            <TableCell align="right">Files Removed</TableCell>
-            <TableCell align="right">Time Since Access</TableCell>
-            <TableCell align="right">Cached Objects Size</TableCell>
-            <TableCell align="right">Total Cache Size</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {caches.map((c, i) => {
-
-            const oneDayHitBytes = oneDayAccessBytes?.data?.result.find(x => x.metric.server_name === c.name && x.metric.type === "hit")?.value[1];
-            const oneDayMissBytes = oneDayAccessBytes?.data?.result.find(x => x.metric.server_name === c.name && x.metric.type === "to_disk")?.value[1];
-
-            const oneMonthHitBytes = oneMonthAccessBytes?.data?.result.find(x => x.metric.server_name === c.name && x.metric.type === "hit")?.value[1];
-            const oneMonthMissBytes = oneMonthAccessBytes?.data?.result.find(x => x.metric.server_name === c.name && x.metric.type === "to_disk")?.value[1];
-
-            const oneDayHitRate = (oneDayHitBytes && oneDayMissBytes) ? (parseFloat(oneDayHitBytes) / (parseFloat(oneDayHitBytes) + parseFloat(oneDayMissBytes))) : undefined;
-            const oneMonthHitRate = (oneMonthHitBytes && oneMonthMissBytes) ? (parseFloat(oneMonthHitBytes) / (parseFloat(oneMonthHitBytes) + parseFloat(oneMonthMissBytes))) : undefined;
-
-            return <TableRow key={c.name}>
-              <TableCell component="th" scope="row">
-                {c.name}
-              </TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={oneDayHitRate ? (oneDayHitRate * 100).toFixed(2) + "%" : "Not Available"} isLoading={oneDayAccessBytesLoading} /></TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={oneMonthHitRate ? (oneMonthHitRate * 100).toFixed(2) + "%" : "Not Available"} isLoading={oneMonthAccessBytesLoading} /></TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={filesOpened?.[c.name] !== undefined ? parseInt(filesOpened[c.name]) : "Not Available"} isLoading={lastAccessLoading} /></TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={filesRemoved?.[c.name] !== undefined ? parseInt(filesRemoved[c.name]) : "Not Available"} isLoading={lastAccessLoading} /></TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={lastAccess?.[c.name] !== undefined ? humanReadableSeconds(time.toSeconds() - parseInt(lastAccess[c.name])) : "Not Available"} isLoading={lastAccessLoading} /></TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={totalCachedBytes?.[c.name] !== undefined ? toBytesString(totalCachedBytes[c.name]) : "Not Available"} isLoading={lastAccessLoading} /></TableCell>
-              <TableCell align="right"><LoadingCell sx={{display: 'flex', justifyContent: 'end'}} value={totalBytes?.[c.name] !== undefined ? toBytesString(totalBytes[c.name]) : "Not Available"} isLoading={lastAccessLoading} /></TableCell>
-            </TableRow>
-
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <DataTable columns={columnConfig} data={data || []} />
   )
 }
 
-const cacheMetricMap = (caches: ServerGeneral[], metricResponse: SuccessResponse<VectorResponseData>) => {
+const serverToMetric = (serverName: string, metricResponse?: SuccessResponse<VectorResponseData>) => {
+  return metricResponse?.data?.result.find(x => x.metric.server_name === serverName)?.value[1];
+}
+
+const serverMetricMap = (caches: ServerGeneral[], metricResponse: SuccessResponse<VectorResponseData>) => {
   return caches.reduce((acc, c) => {
-    acc[c.name] = metricResponse?.data?.result.find(x => x.metric.server_name === c.name)?.value[1];
+    acc[c.name] = serverToMetric(c.name, metricResponse);
     return acc;
   }, {} as Record<string, string | undefined>);
 }

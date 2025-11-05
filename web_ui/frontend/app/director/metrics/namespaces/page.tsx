@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 
 import { GraphOverlay } from "@/components/graphs/GraphOverlay";
-import CacheTable from '../components/CacheTable';
+import NamespaceTable from '../components/NamespaceTable';
 
 const Page = () => {
 
@@ -18,10 +18,10 @@ const Page = () => {
         <Link underline='hover' color='inherit' href='../../'>
           Metrics
         </Link>
-        <Typography color='text.primary'>Caches</Typography>
+        <Typography color='text.primary'>Namespaces</Typography>
       </Breadcrumbs>
       <GraphOverlay>
-        <CacheTable />
+        <NamespaceTable />
       </GraphOverlay>
     </Box>
   )

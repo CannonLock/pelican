@@ -1,11 +1,18 @@
 import { TableCellProps } from '@mui/material';
 
 export interface ColumnConfig<T> {
-  title: React.ReactNode;
+  key: string;
+  label: React.ReactNode;
   headerProps?: TableCellProps;
-  value: ((item: T) => React.ReactNode);
+  formatter?: (item: T) => React.ReactNode;
   cellProps?: TableCellProps;
-  toNumber?: (item: T) => number | undefined;
   sort?: (itemA: T, itemB: T) => number;
   isLoading?: boolean;
 }
+
+export type SortDirection = 'asc' | 'desc';
+
+export {default as DataTable} from './DataTable';
+export * from './DataTable';
+
+export {default as toPercentage} from './toPercentage';
