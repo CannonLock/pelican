@@ -14,12 +14,15 @@ import { toBytesString } from '@/helpers/bytes';
 import useApiSWR from '@/hooks/useApiSWR';
 import { fetchApi } from '@/helpers/api';
 import { ColumnConfig, DataTable, toPercentage } from '@/components/DataTable';
+import { linearColorScale, logColorScale, normalDistColorScale } from '@/helpers/ColorScales';
 import useSWR from 'swr';
+import { useRouter } from 'next/navigation';
 
 
 const NamespaceTable = () => {
 
   const { rate, time, resolution, range } = useContext(GraphContext);
+  const router = useRouter();
 
   const {data: namespaces, isLoading: namespacesLoading} = useApiSWR<DirectorNamespace[]>(
     "Could not fetch servers",
@@ -28,7 +31,7 @@ const NamespaceTable = () => {
   )
 
   const {data: variableHitBytes, isLoading: variableHitBytesLoading} = useSWR(
-    ["/director_ui/metrics/namespaces/one_day_hit_bytes", time],
+    ["/director_ui/metrics/namespaces/one_day_hit_bytes", time, rate],
     async () => query_raw<VectorResponseData>(replaceQueryParameters('sum by (path,type) (increase(xrootd_cache_access_bytes{type="hit"}[${range}]))', {range}), time.toSeconds())
   )
 
@@ -59,7 +62,7 @@ const NamespaceTable = () => {
 
   const {data: lastAccess, isLoading: lastAccessLoading} = useSWR(
     ["/director_ui/metrics/namespaces/last_access", time, caches],
-    async () => await query_raw<VectorResponseData>('min by (dir_name) (xrootd_cache_eviction_dir_last_access_time_seconds{type="open"})', time.toSeconds())
+    async () => await query_raw<VectorResponseData>('max by (dir_name) (xrootd_cache_eviction_dir_last_access_time_seconds{type="open"})', time.toSeconds())
   )
 
   const {data: totalCachedBytes, isLoading: totalCachedBytesLoading} = useSWR(
@@ -73,6 +76,14 @@ const NamespaceTable = () => {
       label: 'Namespace',
       isLoading: namespacesLoading,
       sort: (a: string, b: string) => a.localeCompare(b),
+      cellProps: (namespace: string) => ({
+        onClick : () => {
+          router.push(`/director/metrics/namespaces/view?namespace=${encodeURIComponent(namespace)}`);
+        },
+        sx: {
+          cursor: 'pointer',
+        }
+      })
     },
     {
       key: 'variableHitrate',
@@ -80,6 +91,7 @@ const NamespaceTable = () => {
       headerProps: { sx: {textAlign: 'end'}},
       cellProps: { sx: {textAlign: 'end'}},
       formatter: toPercentage,
+      colorFormatter: linearColorScale(),
       isLoading: variableHitBytesLoading || variableMissBytesLoading,
     },
     {
@@ -88,6 +100,7 @@ const NamespaceTable = () => {
       headerProps: { sx: {textAlign: 'end'}},
       cellProps: { sx: {textAlign: 'end'}},
       formatter: toPercentage,
+      colorFormatter: linearColorScale(),
       isLoading: oneMonthHitBytesLoading || oneMonthMissBytesLoading,
     },
     {
@@ -95,17 +108,10 @@ const NamespaceTable = () => {
       label: 'Files Opened',
       headerProps: { sx: {textAlign: 'end'}},
       cellProps: { sx: {textAlign: 'end'}},
+      colorFormatter: logColorScale(),
       formatter: (x: string) => parseInt(x).toLocaleString(),
       isLoading: filesOpenedLoading,
     },
-    // {
-    //   key: 'filesRemoved',
-    //   label: 'Files Removed',
-    //   headerProps: { sx: {textAlign: 'end'}},
-    //   cellProps: { sx: {textAlign: 'end'}},
-    //   formatter: (x: string) => parseInt(x).toLocaleString(),
-    //   isLoading: filesRemovedLoading,
-    // },
     {
       key: 'timeSinceAccess',
       label: 'Time Since Access',
@@ -120,6 +126,7 @@ const NamespaceTable = () => {
       headerProps: { sx: {textAlign: 'end'}},
       cellProps: { sx: {textAlign: 'end'}},
       formatter: (x: string) => toBytesString(parseInt(x)),
+      colorFormatter: logColorScale(),
       isLoading: totalCachedBytesLoading,
     }
   ]

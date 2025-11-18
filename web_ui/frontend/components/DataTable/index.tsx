@@ -5,8 +5,9 @@ export interface ColumnConfig<T> {
   label: React.ReactNode;
   headerProps?: TableCellProps;
   formatter?: (item: T) => React.ReactNode;
-  cellProps?: TableCellProps;
+  cellProps?: TableCellProps | ((item: T) => TableCellProps);
   sort?: (itemA: T, itemB: T) => number;
+  colorFormatter?: (item: T, items: T[]) => string;
   isLoading?: boolean;
 }
 
@@ -16,3 +17,5 @@ export {default as DataTable} from './DataTable';
 export * from './DataTable';
 
 export {default as toPercentage} from './toPercentage';
+
+export {default as isEmpty} from './isEmpty';

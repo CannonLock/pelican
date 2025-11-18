@@ -15,7 +15,7 @@ const Page = () => {
   return (
     <Box>
       <Breadcrumbs aria-label='breadcrumb' sx={{ mb: 1 }}>
-        <Link underline='hover' color='inherit' href='../../'>
+        <Link underline='hover' color='inherit' href='../'>
           Metrics
         </Link>
         <Typography color='text.primary'>Namespaces</Typography>

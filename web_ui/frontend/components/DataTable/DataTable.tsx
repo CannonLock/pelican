@@ -14,6 +14,7 @@ import { ReactNode, useMemo, useState } from 'react';
 
 import { ColumnConfig, SortDirection } from ".";
 import LoadingRows from "./LoadingRow";
+import isEmpty from "./isEmpty"
 import { TextSkeleton } from '@/components';
 
 export interface DataTableProps {
@@ -47,10 +48,10 @@ const DataTable = ({columns: _columns, data}: DataTableProps) => {
     const columnConfig = columns.find((col) => col.key === sortedColumn);
     if (!columnConfig || !columnConfig.sort) return data;
 
-    const validData = data.filter((item) => item[sortedColumn] !== undefined && item[sortedColumn] !== null);
+    const validData = data.filter((item) => !isEmpty(item[sortedColumn]));
     if (validData.length === 0) return data;
 
-    const invalidData = data.filter((item) => item[sortedColumn] === undefined || item[sortedColumn] === null);
+    const invalidData = data.filter((item) => isEmpty(item[sortedColumn]));
 
     const validSorted = validData.sort((a, b) => columnConfig.sort(a[sortedColumn], b[sortedColumn]));
 
@@ -103,14 +104,23 @@ const DataTable = ({columns: _columns, data}: DataTableProps) => {
               <TableRow key={rowIndex} hover>
                 {columns.map((col, colIndex) => {
 
-                  const value = item?.[col.key] ? col.formatter(item?.[col.key]) : undefined;
+                  const value = !isEmpty(item?.[col.key]) ? col.formatter(item?.[col.key]) : undefined;
+                  const cellProps = typeof col.cellProps === 'function' ? col.cellProps(item?.[col.key]) : col.cellProps;
 
                   return (
-                    <TableCell key={colIndex}>
+                    <TableCell
+                      key={colIndex}
+                      sx={{p: 0}}
+                    >
                       <LoadingCell
                         isLoading={!!col.isLoading}
                         value={value || "Not available"}
-                        {...col.cellProps}
+                        {...cellProps}
+                        sx={{
+                          p: 2,
+                          backgroundColor: col.colorFormatter ? col.colorFormatter(item?.[col.key], data.map(x => x[col.key]).filter(x => !isEmpty(x))) : undefined,
+                          ...cellProps?.sx
+                        }}
                       />
                     </TableCell>
                   )
@@ -135,6 +145,7 @@ const defaultConfig = {
 }
 
 const LoadingCell = ({value, isLoading, ...props}: {value: ReactNode, isLoading: boolean} & BoxProps) => {
+  console.log(props.sx)
   return <Box {...props}>
     {isLoading ? <TextSkeleton chars={6} /> : value}
   </Box>
