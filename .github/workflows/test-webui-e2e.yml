@@ -140,7 +140,7 @@ jobs:
           cat > "$PELICAN_CONFIGDIR/pelican.yaml" <<'EOF'
           TLSSkipVerify: true
           OIDC:
-            ClientIDFile: fake-client
+            ClientID: fake-client
             ClientSecretFile: /tmp/pelican-admin-password.txt
           Server:
             HostName: localhost
