@@ -97,7 +97,6 @@ jobs:
           Logging:
             Level: info
           Origin:
-            EnableIssuer: true
             Exports:
               - FederationPrefix: /test
                 StoragePrefix: /tmp/pelican-origin-data
