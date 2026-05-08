@@ -147,13 +147,12 @@ npm run e2e
 ## Generating tokens for local testing
 
 ```bash
-
 PELICAN_BINARY=./pelican-server
 PELICAN_CONFIG=/etc/pelican/local/pelican.yaml
 
-TOKEN=$(./pelican-server origin token create \
-  --config /etc/pelican/local/pelican.yaml \
-  --private-key /etc/pelican/local/issuer.jwk \
+TOKEN=$("$PELICAN_BINARY" origin token create \
+  --config "$PELICAN_CONFIG/pelican.yaml" \
+  --private-key "$PELICAN_CONFIG/issuer.jwk" \
   --profile wlcg \
   --scope "web_ui.access monitoring.query monitoring.scrape" \
   --issuer https://localhost:8444 \
@@ -161,7 +160,7 @@ TOKEN=$(./pelican-server origin token create \
   --audience https://localhost:8444 \
   --claim "oidc_iss=https://localhost:8444" \
   --claim "oidc_sub=admin" \
-  --lifetime 3600)
+  --claim "user_id=a3bb1eff")
 ```
 
 Then you can use the generated token to make authenticated requests:

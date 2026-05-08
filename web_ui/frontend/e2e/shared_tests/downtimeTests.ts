@@ -44,8 +44,6 @@ export function registerDowntimeTests(serviceUrl: string) {
       await mockGetDowntime(page);
       await downtimePage.goto();
 
-      await page.pause();
-
       // Set the filter range to encompass all mock events:
       // earliest start is 8 days ago (last-week entry), latest end is tomorrow
       const filterStart = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
@@ -58,8 +56,6 @@ export function registerDowntimeTests(serviceUrl: string) {
         downtimePage.filterEndTimePicker,
         filterEnd
       );
-
-      await page.pause()
 
       for (const entry of mockDowntimeList) {
         await expect(
