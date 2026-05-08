@@ -1,10 +1,9 @@
 ---
 name: Web UI E2E Tests
 
-# Builds the Pelican binary inside the pelican-dev container (which has Go,
-# Node.js, GoReleaser, and XRootD pre-installed), starts a federation-in-a-box
-# server, generates an admin bearer token, and runs the Playwright
-# end-to-end tests from web_ui/frontend.
+# Compiles the Pelican binary once, then fans out across each service in
+# parallel. Each leg starts only its own module and runs only the matching
+# Playwright project (origin / cache / director / registry).
 
 on:
   pull_request:
@@ -18,22 +17,20 @@ defaults:
     shell: bash
 
 jobs:
-  e2e-tests:
-    name: Web UI E2E Tests
+
+  # ── Build ────────────────────────────────────────────────────────────────────
+  build:
+    name: Build Pelican binaries
     runs-on: ubuntu-latest
     container:
-      # pelican-dev has Go, Node.js, npm, GoReleaser, and XRootD pre-installed,
-      # so we don't need to spend job time setting those up ourselves.
+      # pelican-dev has Go, Node.js, npm, GoReleaser, and XRootD pre-installed.
       image: hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb
-    env:
-      # All Pelican config and runtime state lives under this directory.
-      PELICAN_CONFIGDIR: /tmp/pelican-e2e
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # GoReleaser needs history to look up the previous tag
+          fetch-depth: 0  # GoReleaser needs tag history
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -41,7 +38,6 @@ jobs:
           node-version-file: "web_ui/frontend/package.json"
           cache: "npm"
           cache-dependency-path: "web_ui/frontend/package-lock.json"
-          check-latest: true
 
       - name: Cache Next.js build output
         uses: actions/cache@v5
@@ -67,31 +63,80 @@ jobs:
         # goreleaser is pre-installed in the pelican-dev image.
         run: goreleaser build --single-target --clean --snapshot --config .goreleaser.generated.yml
 
-      - name: Copy Pelican binaries to workspace root
+      - name: Stage binaries for upload
         run: |
-          cp dist/pelican_linux_amd64_v1/pelican ./pelican
-          cp dist/pelican-server_linux_amd64_v1/pelican-server ./pelican-server
+          mkdir -p /tmp/pelican-binaries
+          cp dist/pelican_linux_amd64_v1/pelican /tmp/pelican-binaries/pelican
+          cp dist/pelican-server_linux_amd64_v1/pelican-server /tmp/pelican-binaries/pelican-server
 
-      - name: Set up Pelican server config and admin credentials
+      - name: Upload Pelican binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: pelican-binaries
+          path: /tmp/pelican-binaries/
+          retention-days: 1  # only needed for the sibling e2e jobs
+
+  # ── E2E tests (matrix) ───────────────────────────────────────────────────────
+  e2e-tests:
+    name: E2E (${{ matrix.service }})
+    needs: build
+    runs-on: ubuntu-latest
+    container:
+      image: hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb
+    env:
+      PELICAN_CONFIGDIR: /tmp/pelican-e2e
+    strategy:
+      fail-fast: false   # run all services even when one fails
+      matrix:
+        include:
+          - service: origin
+            module: origin
+          - service: cache
+            module: cache
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: "web_ui/frontend/package.json"
+          cache: "npm"
+          cache-dependency-path: "web_ui/frontend/package-lock.json"
+
+      - name: Download Pelican binaries
+        uses: actions/download-artifact@v8
+        with:
+          name: pelican-binaries
+          path: /tmp/pelican-binaries
+
+      - name: Install Pelican binaries
+        run: |
+          install -m 755 /tmp/pelican-binaries/pelican ./pelican
+          install -m 755 /tmp/pelican-binaries/pelican-server ./pelican-server
+
+      - name: Set up Pelican config and admin credentials
         run: |
           mkdir -p "$PELICAN_CONFIGDIR"
           mkdir -p /tmp/pelican-origin-data
 
-          # Write a known password to a temp file for pelican to hash.
           echo -n "password" > /tmp/pelican-admin-password.txt
 
-          # Use pelican-server to generate the bcrypt htpasswd file.
+          # Generate the bcrypt htpasswd file.
           ./pelican-server generate password \
             --password /tmp/pelican-admin-password.txt \
             --output "$PELICAN_CONFIGDIR/server-web-passwd"
 
-          # Write a minimal federation-in-a-box config.
+          # Write a minimal config. Server.DBLocation avoids DB-path permission
+          # issues in CI for the director and registry SQLite databases.
           cat > "$PELICAN_CONFIGDIR/pelican.yaml" <<'EOF'
           TLSSkipVerify: true
           Server:
             HostName: localhost
             WebPort: 8444
             UIPasswordFile: /tmp/pelican-e2e/server-web-passwd
+            DBLocation: /tmp/pelican-e2e
           Federation:
             DiscoveryUrl: "https://localhost:8444"
           Logging:
@@ -105,23 +150,26 @@ jobs:
                   - Listings
           EOF
 
-      - name: Start Pelican server (federation-in-a-box)
+      - name: Start Pelican ${{ matrix.service }} server
         run: |
-          ./pelican-server serve \
-            --module director,registry,origin,cache \
-            &
+          ./pelican-server serve --module ${{ matrix.module }} &
           echo $! > /tmp/pelican-server.pid
 
       - name: Wait for Pelican server to be ready
         run: |
-          echo "Waiting for Pelican server to be ready..."
+          echo "Waiting for Pelican ${{ matrix.service }} server..."
           for i in $(seq 1 60); do
+            # Bail early if the server process has already exited.
+            if ! kill -0 "$(cat /tmp/pelican-server.pid)" 2>/dev/null; then
+              echo "::error::Pelican ${{ matrix.service }} process died before becoming ready"
+              exit 1
+            fi
             if curl -sk https://localhost:8444/api/v1.0/health > /dev/null 2>&1; then
               echo "Server ready after ${i} poll(s)"
               break
             fi
             if [ "$i" -eq 60 ]; then
-              echo "::error::Pelican server did not become ready in time"
+              echo "::error::Pelican ${{ matrix.service }} server did not become ready in time"
               exit 1
             fi
             sleep 3
@@ -146,7 +194,7 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: Run Playwright e2e tests
+      - name: Run Playwright e2e tests (${{ matrix.service }})
         working-directory: web_ui/frontend
         env:
           CI: "true"
@@ -158,21 +206,21 @@ jobs:
           TARGET_CACHE_TOKEN: ${{ env.PELICAN_E2E_TOKEN }}
           TARGET_DIRECTOR_TOKEN: ${{ env.PELICAN_E2E_TOKEN }}
           TARGET_REGISTRY_TOKEN: ${{ env.PELICAN_E2E_TOKEN }}
-        run: npm run e2e
+        run: npx playwright test --project=${{ matrix.service }}
 
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.service }}
           path: web_ui/frontend/playwright-report/
           retention-days: 30
 
-      - name: Upload Pelican server config and logs on failure
+      - name: Upload Pelican server logs on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: pelican-server-state
+          name: pelican-server-state-${{ matrix.service }}
           path: /tmp/pelican-e2e/
           retention-days: 7
 
