@@ -93,11 +93,6 @@ npx playwright show-report
 
 ## Folder structure
 
-curl 'https://localhost:8444/api/v1.0/auth/whoami' \
--H 'accept: */*' \
--H 'Authorization: Bearer eyJhbGciOiJFUzI1NiIsImtpZCI6IkpFT280Z3Y3VzVVN1k4ZUZyTFViWElWSmZnLThMa3ltMjl4TkJBQ2tGZTgiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOlsiaHR0cHM6Ly9sb2NhbGhvc3Q6ODQ0NCJdLCJleHAiOjE3NzgxMDI4NTcsImlhdCI6MTc3ODEwMTY1NywiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6ODQ0NCIsImp0aSI6IllQUS1YNkRYSGw0ZnpYbThyV0RibWciLCJuYmYiOjE3NzgxMDE2NTcsIm9pZGNfaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6ODQ0NCIsIm9pZGNfc3ViIjoiYWRtaW4iLCJzY29wZSI6IndlYl91aS5hY2Nlc3MgbW9uaXRvcmluZy5xdWVyeSBtb25pdG9yaW5nLnNjcmFwZSIsInN1YiI6ImFkbWluIiwidXNlcl9pZCI6ImEzYmIxZWZmIiwid2xjZy52ZXIiOiIxLjAifQ.w6CFdgGHV3PIowFmxmU2W8RJh3Z1cjO3iN2P7GUWpyvbn--r69g4kb9oa8TrxtX5Xj0gfPitWBhLXvWQRHwxug' \
---insecure
-
 ```
 e2e/
   .env                        # Local env vars (gitignored)
@@ -149,4 +144,31 @@ npm run e2e
 
 `@mutating` tests are skipped automatically when `E2E_EXTERNAL=1`.
 
-../../dist/pelican_darwin_arm64_v8.0/pelican origin token create --private-key /Users/clock/WebstormProjects/pelican/local/issuer.jwk --profile wlcg --scope "web_ui.access monitoring.query monitoring.scrape" --issuer https://localhost:8444 --subject admin --audience https://localhost:8444 --claim "oidc_iss=https://localhost:8444" --claim "oidc_sub=admin" --claim "user_id=a3bb1eff"
+## Generating tokens for local testing
+
+```bash
+
+PELICAN_BINARY=./pelican-server
+PELICAN_CONFIG=/etc/pelican/local/pelican.yaml
+
+TOKEN=$(./pelican-server origin token create \
+  --config /etc/pelican/local/pelican.yaml \
+  --private-key /etc/pelican/local/issuer.jwk \
+  --profile wlcg \
+  --scope "web_ui.access monitoring.query monitoring.scrape" \
+  --issuer https://localhost:8444 \
+  --subject admin \
+  --audience https://localhost:8444 \
+  --claim "oidc_iss=https://localhost:8444" \
+  --claim "oidc_sub=admin" \
+  --lifetime 3600)
+```
+
+Then you can use the generated token to make authenticated requests:
+
+```bash
+curl 'https://localhost:8444/api/v1.0/auth/whoami' \
+  -H 'accept: */*' \
+  -H "Authorization: Bearer $TOKEN" \
+  --insecure
+```
