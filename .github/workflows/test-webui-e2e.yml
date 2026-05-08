@@ -203,7 +203,28 @@ jobs:
         working-directory: web_ui/frontend
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          # pelican-dev is AlmaLinux-based; Playwright's --with-deps uses apt-get
+          # and will fail. Install Chromium's system deps via dnf instead.
+          dnf install -y \
+            alsa-lib \
+            atk \
+            cups-libs \
+            gtk3 \
+            libdrm \
+            libgbm \
+            libXcomposite \
+            libXdamage \
+            libXext \
+            libXfixes \
+            libXi \
+            libXrandr \
+            libXScrnSaver \
+            libXtst \
+            mesa-libgbm \
+            nss \
+            nspr \
+            pango
+          npx playwright install chromium
 
       - name: Run Playwright e2e tests (${{ matrix.service }})
         working-directory: web_ui/frontend
