@@ -157,7 +157,8 @@ jobs:
 
       - name: Start Pelican ${{ matrix.service }} server
         run: |
-          ./pelican-server serve --module ${{ matrix.module }} &
+          ./pelican-server serve --module ${{ matrix.module }} \
+            > /tmp/pelican-server.log 2>&1 &
           echo $! > /tmp/pelican-server.pid
 
       - name: Wait for Pelican server to be ready
@@ -238,7 +239,15 @@ jobs:
           TARGET_CACHE_TOKEN: ${{ env.PELICAN_E2E_TOKEN }}
           TARGET_DIRECTOR_TOKEN: ${{ env.PELICAN_E2E_TOKEN }}
           TARGET_REGISTRY_TOKEN: ${{ env.PELICAN_E2E_TOKEN }}
-        run: npx playwright test --project=${{ matrix.service }}
+        run: |
+          # Verify the server is still alive after the npm/dnf install steps.
+          if ! kill -0 "$(cat /tmp/pelican-server.pid)" 2>/dev/null; then
+            echo "::error::Pelican server is no longer running before Playwright tests started"
+            echo "--- last 50 lines of server log ---"
+            tail -50 /tmp/pelican-server.log || true
+            exit 1
+          fi
+          npx playwright test --project=${{ matrix.service }}
 
       - name: Upload Playwright HTML report
         if: always()
@@ -253,7 +262,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: pelican-server-state-${{ matrix.service }}
-          path: /etc/pelican/
+          path: |
+            /etc/pelican/
+            /tmp/pelican-server.log
           retention-days: 7
 
       - name: Stop Pelican server
