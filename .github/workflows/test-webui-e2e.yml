@@ -89,10 +89,17 @@ jobs:
       fail-fast: false   # run all services even when one fails
       matrix:
         include:
+          # registry has no upstream dependencies — runs alone.
+          - service: registry
+            module: registry
+          # director needs a registry to advertise to.
+          - service: director
+            module: director,registry
+          # origin and cache both need a director + registry to register with.
           - service: origin
-            module: origin
+            module: origin,director,registry
           - service: cache
-            module: cache
+            module: origin,cache,director,registry
 
     steps:
       - name: Checkout repository
@@ -132,6 +139,9 @@ jobs:
           # issues in CI for the director and registry SQLite databases.
           cat > "$PELICAN_CONFIGDIR/pelican.yaml" <<'EOF'
           TLSSkipVerify: true
+          OIDC:
+            ClientIDFile: fake-client
+            ClientSecretFile: /tmp/pelican-admin-password.txt
           Server:
             HostName: localhost
             WebPort: 8444
