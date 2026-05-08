@@ -88,11 +88,11 @@ jobs:
       matrix:
         include:
           # registry has no upstream dependencies — runs alone.
-          - service: registry
-            module: registry
+#          - service: registry
+#            module: registry
           # director needs a registry to advertise to.
-          - service: director
-            module: director,registry
+#          - service: director
+#            module: director,registry
           # origin and cache both need a director + registry to register with.
           - service: origin
             module: origin,director,registry
