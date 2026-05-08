@@ -83,8 +83,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hub.opensciencegrid.org/pelican_platform/pelican-dev:latest-itb
-    env:
-      PELICAN_CONFIGDIR: /tmp/pelican-e2e
     strategy:
       fail-fast: false   # run all services even when one fails
       matrix:
@@ -125,19 +123,18 @@ jobs:
 
       - name: Set up Pelican config and admin credentials
         run: |
-          mkdir -p "$PELICAN_CONFIGDIR"
           mkdir -p /tmp/pelican-origin-data
 
           echo -n "password" > /tmp/pelican-admin-password.txt
 
-          # Generate the bcrypt htpasswd file.
+          # Generate the bcrypt htpasswd file in the default config dir.
           ./pelican-server generate password \
             --password /tmp/pelican-admin-password.txt \
-            --output "$PELICAN_CONFIGDIR/server-web-passwd"
+            --output /etc/pelican/server-web-passwd
 
-          # Write a minimal config. Server.DBLocation avoids DB-path permission
-          # issues in CI for the director and registry SQLite databases.
-          cat > "$PELICAN_CONFIGDIR/pelican.yaml" <<'EOF'
+          # Write a minimal config. All file paths default to /etc/pelican/
+          # so only non-default values need to be specified.
+          cat > /etc/pelican/pelican.yaml <<'EOF'
           TLSSkipVerify: true
           OIDC:
             ClientID: fake-client
@@ -145,8 +142,6 @@ jobs:
           Server:
             HostName: localhost
             WebPort: 8444
-            UIPasswordFile: /tmp/pelican-e2e/server-web-passwd
-            DBLocation: /tmp/pelican-e2e
           Federation:
             DiscoveryUrl: "https://localhost:8444"
           Logging:
@@ -174,12 +169,17 @@ jobs:
               echo "::error::Pelican ${{ matrix.service }} process died before becoming ready"
               exit 1
             fi
-            if curl -sk https://localhost:8444/api/v1.0/health > /dev/null 2>&1; then
+            health_ok=false
+            key_ok=false
+            curl -sk https://localhost:8444/api/v1.0/health > /dev/null 2>&1 && health_ok=true
+            # Keys are written as pelican_generated_*.pem inside issuer-keys/, not issuer.jwk.
+            ls /etc/pelican/issuer-keys/*.pem > /dev/null 2>&1 && key_ok=true
+            if $health_ok && $key_ok; then
               echo "Server ready after ${i} poll(s)"
               break
             fi
             if [ "$i" -eq 60 ]; then
-              echo "::error::Pelican ${{ matrix.service }} server did not become ready in time"
+              echo "::error::Pelican ${{ matrix.service }} server did not become ready in time (health=${health_ok}, issuer_key=${key_ok})"
               exit 1
             fi
             sleep 3
@@ -187,8 +187,9 @@ jobs:
 
       - name: Generate admin bearer token
         run: |
+          # No --private-key needed: PELICAN_CONFIGDIR is set in the job env so
+          # the binary discovers the key from issuer-keys/ automatically.
           TOKEN=$(./pelican-server origin token create \
-            --private-key "$PELICAN_CONFIGDIR/issuer.jwk" \
             --profile wlcg \
             --scope "web_ui.access monitoring.query monitoring.scrape" \
             --issuer https://localhost:8444 \
@@ -231,7 +232,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: pelican-server-state-${{ matrix.service }}
-          path: /tmp/pelican-e2e/
+          path: /etc/pelican/
           retention-days: 7
 
       - name: Stop Pelican server
