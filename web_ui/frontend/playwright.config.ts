@@ -59,6 +59,8 @@ export default defineConfig({
   use: {
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    /* In CI the server uses a self-signed certificate, so we skip TLS verification. */
+    ignoreHTTPSErrors: !!process.env.CI,
   },
 
   /* Configure projects for major browsers */
