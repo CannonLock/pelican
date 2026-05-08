@@ -95,9 +95,9 @@ jobs:
 #            module: director,registry
           # origin and cache both need a director + registry to register with.
           - service: origin
-            module: origin,director,registry
+            module: origin
           - service: cache
-            module: origin,cache,director,registry
+            module: cache
 
     steps:
       - name: Checkout repository
@@ -143,13 +143,13 @@ jobs:
             HostName: localhost
             WebPort: 8444
           Federation:
-            DiscoveryUrl: "https://localhost:8444"
+            DiscoveryUrl: "https://osg-htc.org"
           Logging:
             Level: info
           Origin:
             Exports:
-              - FederationPrefix: /test
-                StoragePrefix: /tmp/pelican-origin-data
+              - FederationPrefix: /test/github-actions
+                StoragePrefix: /etc/pelican
                 Capabilities:
                   - Reads
                   - Listings
