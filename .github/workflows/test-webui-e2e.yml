@@ -95,9 +95,9 @@ jobs:
 #            module: director,registry
           # origin and cache both need a director + registry to register with.
           - service: origin
-            module: origin
+            module: origin,director,registry
           - service: cache
-            module: cache
+            module: origin,cache,director,registry
 
     steps:
       - name: Checkout repository
