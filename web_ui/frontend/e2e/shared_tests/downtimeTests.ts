@@ -18,10 +18,8 @@
 
 import { test, expect } from '@playwright/test';
 import { DowntimePage } from '../shared_pages/DowntimePage';
-import {
-  mockGetDowntime,
-  mockDowntimeList,
-} from '../mocks/api/v1.0/downtime/get';
+import { mockDowntimeApi } from '../mocks/api/v1.0/downtime/crud';
+import { mockDowntimeList } from '../mocks/api/v1.0/downtime/get';
 
 /**
  * Registers the shared downtime tests for a given service URL.
@@ -35,13 +33,18 @@ export function registerDowntimeTests(serviceUrl: string) {
 
   test.beforeEach(async ({ page }) => {
     downtimePage = new DowntimePage(page, serviceUrl);
+    // Set up a fresh, empty in-memory mock API before each navigation so no
+    // test ever reaches the real server.
+    await mockDowntimeApi(page);
     await downtimePage.goto();
   });
 
   test(
     'shows existing downtime entries returned by the API @smoke @mocked',
     async ({ page }) => {
-      await mockGetDowntime(page);
+      // Override the empty mock with the fixture list, then re-navigate so the
+      // initial fetch picks up the seeded data.
+      await mockDowntimeApi(page, mockDowntimeList);
       await downtimePage.goto();
 
       // Set the filter range to encompass all mock events:
@@ -79,8 +82,8 @@ export function registerDowntimeTests(serviceUrl: string) {
   });
 
   test(
-    'creates a new downtime entry and shows it in the list @mutating',
-    async ({ page }) => {
+    'creates a new downtime entry and shows it in the list @smoke @mocked',
+    async () => {
       // Use a timestamped description so parallel runs don't collide
       const description = `E2E test downtime ${Date.now()}`;
       const severity = 'Severe (most services down)';
@@ -98,7 +101,7 @@ export function registerDowntimeTests(serviceUrl: string) {
   );
 
   test(
-    'closes the modal without saving when the close button is clicked @mutating',
+    'closes the modal without saving when the close button is clicked @mocked',
     async () => {
       const description = `E2E cancelled downtime ${Date.now()}`;
 
@@ -115,29 +118,29 @@ export function registerDowntimeTests(serviceUrl: string) {
     }
   );
 
-  // test(
-  //   'edits the description of an existing downtime entry @mutating',
-  //   async () => {
-  //     const original = `E2E edit-me downtime ${Date.now()}`;
-  //     const updated = `${original} (edited)`;
-  //
-  //     // Create the entry first
-  //     await downtimePage.openCreateModal();
-  //     await downtimePage.createDowntime(original);
-  //     await expect(downtimePage.modalHeading).not.toBeVisible();
-  //     await expect(downtimePage.downtimeCardByDescription(original)).toBeVisible();
-  //
-  //     // Open the edit modal and change the description
-  //     await downtimePage.openEditModalForCard(original);
-  //     await downtimePage.editDescriptionField.fill(updated);
-  //     await downtimePage.editSubmitButton.click();
-  //
-  //     // Edit modal should close
-  //     await expect(downtimePage.editModalHeading).not.toBeVisible();
-  //
-  //     // Updated description should appear; original should be gone
-  //     await expect(downtimePage.downtimeCardByDescription(updated)).toBeVisible();
-  //     await expect(downtimePage.downtimeCardByDescription(original)).not.toBeVisible();
-  //   }
-  // );
+  test(
+    'edits the description of an existing downtime entry @mocked',
+    async () => {
+      const original = `E2E edit-me downtime ${Date.now()}`;
+      const updated = `${original} (edited)`;
+
+      // Create the entry first
+      await downtimePage.openCreateModal();
+      await downtimePage.createDowntime(original);
+      await expect(downtimePage.modalHeading).not.toBeVisible();
+      await expect(downtimePage.downtimeCardByDescription(original)).toBeVisible();
+
+      // Open the edit modal and change the description
+      await downtimePage.openEditModalForCard(original);
+      await downtimePage.editDescriptionField.fill(updated);
+      await downtimePage.editSubmitButton.click();
+
+      // Edit modal should close
+      await expect(downtimePage.editModalHeading).not.toBeVisible();
+
+      // Updated description should appear; original should be gone
+      await expect(downtimePage.downtimeCardByDescription(updated)).toBeVisible();
+      await expect(downtimePage.downtimeCardByDescription(original)).not.toBeVisible();
+    }
+  );
 }
