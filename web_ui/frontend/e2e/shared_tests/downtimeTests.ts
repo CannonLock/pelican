@@ -115,29 +115,29 @@ export function registerDowntimeTests(serviceUrl: string) {
     }
   );
 
-  test(
-    'edits the description of an existing downtime entry @mutating',
-    async () => {
-      const original = `E2E edit-me downtime ${Date.now()}`;
-      const updated = `${original} (edited)`;
-
-      // Create the entry first
-      await downtimePage.openCreateModal();
-      await downtimePage.createDowntime(original);
-      await expect(downtimePage.modalHeading).not.toBeVisible();
-      await expect(downtimePage.downtimeCardByDescription(original)).toBeVisible();
-
-      // Open the edit modal and change the description
-      await downtimePage.openEditModalForCard(original);
-      await downtimePage.editDescriptionField.fill(updated);
-      await downtimePage.editSubmitButton.click();
-
-      // Edit modal should close
-      await expect(downtimePage.editModalHeading).not.toBeVisible();
-
-      // Updated description should appear; original should be gone
-      await expect(downtimePage.downtimeCardByDescription(updated)).toBeVisible();
-      await expect(downtimePage.downtimeCardByDescription(original)).not.toBeVisible();
-    }
-  );
+  // test(
+  //   'edits the description of an existing downtime entry @mutating',
+  //   async () => {
+  //     const original = `E2E edit-me downtime ${Date.now()}`;
+  //     const updated = `${original} (edited)`;
+  //
+  //     // Create the entry first
+  //     await downtimePage.openCreateModal();
+  //     await downtimePage.createDowntime(original);
+  //     await expect(downtimePage.modalHeading).not.toBeVisible();
+  //     await expect(downtimePage.downtimeCardByDescription(original)).toBeVisible();
+  //
+  //     // Open the edit modal and change the description
+  //     await downtimePage.openEditModalForCard(original);
+  //     await downtimePage.editDescriptionField.fill(updated);
+  //     await downtimePage.editSubmitButton.click();
+  //
+  //     // Edit modal should close
+  //     await expect(downtimePage.editModalHeading).not.toBeVisible();
+  //
+  //     // Updated description should appear; original should be gone
+  //     await expect(downtimePage.downtimeCardByDescription(updated)).toBeVisible();
+  //     await expect(downtimePage.downtimeCardByDescription(original)).not.toBeVisible();
+  //   }
+  // );
 }

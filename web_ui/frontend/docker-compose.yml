@@ -16,7 +16,7 @@ services:
     volumes:
       - ../../dist/pelican-server_linux_arm64_v8.0/:/app # Replace with the correct path to the built binary
       - ../../local/:/etc/pelican/
-    command: sh -c "chown -R 10940:10940 /etc/pelican && ./pelican-server serve --module origin,cache"
+    command: ./pelican-server serve --module origin
 
   # Run pelican API proxy
   pelican-api-proxy:
