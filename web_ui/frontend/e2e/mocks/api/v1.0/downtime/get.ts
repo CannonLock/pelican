@@ -17,7 +17,7 @@
  ***************************************************************/
 
 import { Page } from '@playwright/test';
-import { DowntimeGet } from "@/types";
+import { DowntimeGet } from '@/types';
 
 const now = Date.now();
 const DAY = 24 * 60 * 60 * 1000;

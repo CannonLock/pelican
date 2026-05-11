@@ -6,7 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 import dotenv from 'dotenv';
 import path from 'path';
-dotenv.config({ path: path.resolve(__dirname + "/e2e", '.env') });
+dotenv.config({ path: path.resolve(__dirname + '/e2e', '.env') });
 
 type Service = 'origin' | 'cache' | 'director' | 'registry';
 interface TestTarget {
