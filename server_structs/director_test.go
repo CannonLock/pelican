@@ -204,6 +204,44 @@ func TestServerBaseAdAfter(t *testing.T) {
 	})
 }
 
+// LongestNSMatch's contract is that the returned ad is detached from the
+// input slice at the top level (a future refactor returning an interior
+// pointer must fail here), while the embedded Generation/Issuer slices are
+// documented to still alias the input -- on the director, live TTL-cache
+// memory that must not be mutated through the return.
+func TestLongestNSMatchReturnsDetachedCopy(t *testing.T) {
+	ads := []NamespaceAd{
+		{
+			Path:       "/foo",
+			Caps:       Capabilities{PublicReads: true},
+			Issuer:     []TokenIssuer{{BasePaths: []string{"/foo"}}},
+			Generation: []TokenGen{{MaxScopeDepth: 3}},
+		},
+	}
+
+	got := LongestNSMatch("/foo/bar", ads)
+	require.NotNil(t, got)
+	require.NotSame(t, &ads[0], got,
+		"LongestNSMatch must not return an interior pointer into the caller's slice")
+
+	// Top-level fields are detached: mutating the copy must not write
+	// through to the caller's (cached) ad.
+	got.Path = "/mutated"
+	got.Caps.PublicReads = false
+	assert.Equal(t, "/foo", ads[0].Path)
+	assert.True(t, ads[0].Caps.PublicReads)
+
+	// The embedded slices are shallow by documented contract: they alias the
+	// input, which is why callers must copy before mutating through them.
+	// This assertion pins the current behavior so a change to it (either
+	// direction) is a conscious one.
+	require.NotEmpty(t, got.Issuer)
+	assert.Same(t, &ads[0].Issuer[0], &got.Issuer[0],
+		"embedded Issuer slice is documented to alias the input")
+	assert.Same(t, &ads[0].Generation[0], &got.Generation[0],
+		"embedded Generation slice is documented to alias the input")
+}
+
 func TestLongestNSMatch(t *testing.T) {
 	nsAd := func(path string) NamespaceAd { return NamespaceAd{Path: path} }
 
