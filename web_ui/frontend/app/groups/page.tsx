@@ -59,7 +59,7 @@ import { Me, MeService } from '@/helpers/api';
 import { getUser } from '@/helpers/login';
 import { hasScope } from '@/index';
 import GroupDetail from './components/GroupDetail';
-import UserPill from './components/UserPill';
+import UserPill from '@/components/UserPill';
 
 const Page = () => {
   const dispatch = useContext(AlertDispatchContext);

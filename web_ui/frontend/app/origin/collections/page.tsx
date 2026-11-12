@@ -68,24 +68,7 @@ import {
 } from '@/helpers/api/Collection/types';
 import CollectionService from '@/helpers/api/Collection/service';
 import GroupService from '@/helpers/api/Group/service';
-
-// formatUserPill renders the canonical "Display Name (username)"
-// label used elsewhere in the app. Falls back to the bare username
-// when display name is unset (or matches the username), or to a
-// placeholder when no card is available (deleted user, legacy row
-// where ownerId never resolved). User.ID slugs are routing handles
-// and never surfaced as labels here.
-const formatUserPill = (
-  card: CollectionSummary['ownerCard'],
-  fallbackUsername: string
-): string => {
-  if (!card) {
-    return fallbackUsername || '(unknown)';
-  }
-  const dn = card.displayName?.trim();
-  if (!dn || dn === card.username) return card.username;
-  return `${dn} (${card.username})`;
-};
+import { formatUserPill } from '@/components/UserPill';
 
 const Page = () => {
   const {
@@ -120,6 +103,13 @@ const Page = () => {
   // ACL rows carry the group's ID directly, so this is only used to
   // decide whether a link to /groups/view would land the caller on a
   // "permission denied" page.
+  // Share rows name their parent; the parent is in this same list when
+  // the caller can see it
+  const collectionNames = useMemo(
+    () => new Map((collections ?? []).map((c) => [c.id, c.name])),
+    [collections]
+  );
+
   const visibleGroupIds = useMemo(() => {
     const ids = new Set<string>();
     for (const g of groups ?? []) {
@@ -224,6 +214,11 @@ const Page = () => {
           <CollectionCard
             key={c.id}
             c={c}
+            parentName={
+              c.parentCollectionId
+                ? collectionNames.get(c.parentCollectionId)
+                : undefined
+            }
             onDelete={() => handleDelete(c.id)}
             onChanged={() => mutate()}
             visibleGroupIds={visibleGroupIds}
@@ -258,11 +253,21 @@ const aclGroupHref = (
 
 const CollectionCard: React.FC<{
   c: CollectionSummary;
+  // Name of the collection this one is a share of, when the caller can
+  // see it
+  parentName?: string;
   onDelete: () => void;
   onChanged: () => Promise<unknown> | void;
   visibleGroupIds: Set<string>;
   canEditUsers: boolean;
-}> = ({ c, onDelete, onChanged, visibleGroupIds, canEditUsers }) => {
+}> = ({
+  c,
+  parentName,
+  onDelete,
+  onChanged,
+  visibleGroupIds,
+  canEditUsers,
+}) => {
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const isShare = !!c.parentCollectionId;
@@ -304,12 +309,15 @@ const CollectionCard: React.FC<{
               Annotate share rows so they're distinguishable in the
               listing — per the design we don't break shares out into
               a separate page, just mark them inline. The chip is
-              non-clickable; the parent collection ID is surfaced in
-              the expanded panel below.
+              non-clickable.
             */}
             {isShare && (
               <Tooltip
-                title={`Share of collection ${c.parentCollectionId}`}
+                title={
+                  parentName
+                    ? `Share of collection ${parentName}`
+                    : 'Share of another collection'
+                }
                 placement='top'
               >
                 <Chip
@@ -371,7 +379,7 @@ const CollectionCard: React.FC<{
                   <Chip
                     size='small'
                     variant='outlined'
-                    label={formatUserPill(c.ownerCard, c.owner)}
+                    label={formatUserPill(c.ownerCard, c.owner).primary}
                     clickable
                   />
                 </Link>
@@ -379,7 +387,7 @@ const CollectionCard: React.FC<{
                 <Chip
                   size='small'
                   variant='outlined'
-                  label={formatUserPill(c.ownerCard, c.owner)}
+                  label={formatUserPill(c.ownerCard, c.owner).primary}
                 />
               )}
             </Tooltip>

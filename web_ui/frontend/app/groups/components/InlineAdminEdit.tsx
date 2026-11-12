@@ -32,7 +32,7 @@ import {
 } from '@mui/material';
 import { Edit as EditIcon } from '@mui/icons-material';
 import { AdminType, Group, User } from '@/types';
-import UserPill, { formatUserPill } from './UserPill';
+import UserPill, { formatUserPill } from '@/components/UserPill';
 import { fetchApi } from '@/helpers/api';
 import { alertOnError } from '@/helpers/util';
 import { AlertDispatchContext } from '@/components/AlertProvider';

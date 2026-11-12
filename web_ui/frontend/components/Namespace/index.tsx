@@ -41,7 +41,7 @@ export interface NamespaceAdminMetadata {
   institution: string;
   security_contact_user_id: string;
   status: RegistrationStatus;
-  approver_id: number;
+  approver_id: string;
   approved_at: string;
   created_at: string;
   updated_at: string;

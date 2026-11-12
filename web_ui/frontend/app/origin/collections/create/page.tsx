@@ -241,7 +241,7 @@ const Page = () => {
   };
 
   const groupOptions = (groups || []).map((g) => ({
-    label: `${g.name} (${g.id})`,
+    label: g.displayName ? `${g.displayName} (${g.name})` : g.name,
     id: g.id,
   }));
 

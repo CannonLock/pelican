@@ -56,6 +56,8 @@ import { AlertDispatchContext } from '@/components/AlertProvider';
 import { alertOnError } from '@/helpers/util';
 import { fetchApi, secureApiFetch } from '@/helpers/api';
 import { API_V1_BASE_URL } from '@/helpers/api/constants';
+import { formatUserPill } from '@/components/UserPill';
+import useUserLookup from '@/hooks/useUserLookup';
 
 // Mirrors the backend AUPDocumentResp / AUPDocument structs. Optional
 // fields that don't apply (e.g. lastUpdated empty) come back undefined.
@@ -117,6 +119,7 @@ const Editor: React.FC = () => {
 
   const [doc, setDoc] = useState<AUPDocumentResp | null>(null);
   const [history, setHistory] = useState<AUPHistoryRow[]>([]);
+  const lookupUser = useUserLookup();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -376,7 +379,12 @@ const Editor: React.FC = () => {
                         )}
                         <Typography variant='body2' color='text.secondary'>
                           Saved {new Date(row.createdAt).toLocaleString()} by{' '}
-                          {row.createdBy}
+                          {
+                            formatUserPill(
+                              lookupUser(row.createdBy),
+                              row.createdBy
+                            ).primary
+                          }
                         </Typography>
                         <Box flexGrow={1} />
                         <Button

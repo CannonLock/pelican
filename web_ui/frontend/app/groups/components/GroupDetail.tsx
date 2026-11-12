@@ -66,7 +66,7 @@ import { fetchApi } from '@/helpers/api';
 import { hasScope } from '@/index';
 import { alertOnError } from '@/helpers/util';
 import { AlertDispatchContext } from '@/components/AlertProvider';
-import UserPill from './UserPill';
+import UserPill, { formatUserPill } from '@/components/UserPill';
 import InlineOwnerEdit from './InlineOwnerEdit';
 import InlineAdminEdit from './InlineAdminEdit';
 import InviteLinksPanel from './InviteLinksPanel';
@@ -323,7 +323,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({
                     <RemoveMemberButton
                       groupId={group.id}
                       userId={m.userId}
-                      label={m.user?.username || m.userId}
+                      label={formatUserPill(m.user, m.userId).primary}
                       onChanged={onChanged}
                     />
                   ) : null

@@ -81,7 +81,9 @@ const FullPageContent: React.FC<{ id: string }> = ({ id }) => {
     <Box width='100%' maxWidth={960}>
       <Breadcrumbs aria-label='breadcrumb' sx={{ mb: 2 }}>
         <Link href='/groups/'>Groups</Link>
-        <Typography color='text.primary'>{group?.name ?? id}</Typography>
+        <Typography color='text.primary'>
+          {group ? group.displayName || group.name : 'Group'}
+        </Typography>
       </Breadcrumbs>
 
       {error && !group && (

@@ -24,6 +24,8 @@ import useServiceSWR from '@/hooks/useServiceSWR';
 import { AlertDispatchContext } from '@/components/AlertProvider';
 import { getUser } from '@/helpers/login';
 import { userOwnsNamespace } from '@/components/Namespace';
+import { formatUserPill } from '@/components/UserPill';
+import SecurityContactField from './SecurityContactField';
 
 interface FormProps {
   namespace?: RegistryNamespace;
@@ -33,10 +35,11 @@ interface FormProps {
 // The fields the owner of an Approved registration may still change. The
 // registry pins every other field to its stored value for non-admin edits so
 // the administrator's approval keeps meaning what was reviewed.
+const SECURITY_CONTACT_FIELD = 'admin_metadata.security_contact_user_id';
 const OWNER_EDITABLE_APPROVED_FIELDS = [
   'admin_metadata.description',
   'admin_metadata.institution',
-  'admin_metadata.security_contact_user_id',
+  SECURITY_CONTACT_FIELD,
 ];
 
 const onChange = (
@@ -98,9 +101,10 @@ const Form = ({ namespace, onSubmit }: FormProps) => {
   const adminUserAndExistingRegistration =
     userIsAdmin && namespace !== undefined;
 
+  // Administrators pick the owner and security contact from every user
   const { data: users } = useServiceSWR(
     'Could not fetch users.',
-    adminUserAndExistingRegistration ? UserService : null,
+    userIsAdmin ? UserService : null,
     'getAll',
     []
   );
@@ -133,7 +137,7 @@ const Form = ({ namespace, onSubmit }: FormProps) => {
       // Prefer the stable Pelican user ID over the login username so the
       // contact reference survives identity-provider changes
       onChange(
-        'admin_metadata.security_contact_user_id',
+        SECURITY_CONTACT_FIELD,
         user?.user_id || user?.user,
         setFormNamespace
       );
@@ -175,9 +179,7 @@ const Form = ({ namespace, onSubmit }: FormProps) => {
             size='small'
             options={users || []}
             value={owner}
-            getOptionLabel={(u) =>
-              u.displayName ? `${u.username} (${u.displayName})` : u.username
-            }
+            getOptionLabel={(u) => formatUserPill(u, u.id).primary}
             isOptionEqualToValue={(a, b) => a.id === b.id}
             onChange={(e, value) =>
               onChange('admin_metadata.user_id', value?.id, setFormNamespace)
@@ -197,6 +199,26 @@ const Form = ({ namespace, onSubmit }: FormProps) => {
       )}
       {fields &&
         fields.map((field, index) => {
+          // The security contact is stored as a User.ID; pick it by name
+          if (field.name === SECURITY_CONTACT_FIELD) {
+            return (
+              <Box key={field.name} pt={index == 0 ? 0 : 2}>
+                <SecurityContactField
+                  value={getValue(formNamespace, calculateKeys(field.name))}
+                  onChange={(value) =>
+                    onChange(field.name, value, setFormNamespace)
+                  }
+                  sessionUser={user}
+                  allUsers={userIsAdmin ? users : undefined}
+                  required={field.required}
+                  disabled={
+                    restrictedEdit &&
+                    !OWNER_EDITABLE_APPROVED_FIELDS.includes(field.name)
+                  }
+                />
+              </Box>
+            );
+          }
           return (
             <Box key={field.name} pt={index == 0 ? 0 : 2}>
               <CustomRegistrationField

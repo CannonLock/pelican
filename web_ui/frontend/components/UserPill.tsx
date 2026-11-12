@@ -20,13 +20,18 @@
 
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { UserCard, User } from '@/types';
+import { UserCard } from '@/types';
+
+// The fields a user label is built from. Every user shape in the app
+// (UserCard, the full User record, service responses) satisfies it.
+export type UserLabelSource = Pick<UserCard, 'username'> &
+  Partial<Pick<UserCard, 'displayName'>>;
 
 interface UserPillProps {
   // Either a resolved UserCard (preferred) or a full User (e.g. an existing
   // group member). Pass `id` as a last-resort fallback when only the raw
   // user ID is known.
-  card?: UserCard | User | null;
+  card?: UserLabelSource | null;
   id?: string;
   /** Optional strong/regular emphasis on the display name. */
   emphasized?: boolean;
@@ -36,7 +41,7 @@ interface UserPillProps {
 // Falls back gracefully when displayName is empty (just username) or when
 // the user couldn't be resolved at all (raw id, italicized).
 export const formatUserPill = (
-  card?: UserCard | User | null,
+  card?: UserLabelSource | null,
   id?: string
 ): { primary: string; tone: 'normal' | 'fallback' } => {
   if (card && card.username) {

@@ -84,6 +84,7 @@ import {
 import { Group } from '@/helpers/api/Group/types';
 import { getUser } from '@/helpers/login';
 import { hasScope } from '@/index';
+import { formatUserPill } from '@/components/UserPill';
 
 // Slim UserCard shape — what /users/:id/candidate-owners returns and
 // what /users returns (modulo extra fields the picker doesn't read).
@@ -94,20 +95,6 @@ interface UserOption {
   username: string;
   displayName: string;
 }
-
-// formatUserPill renders the canonical "Display Name (username)"
-// label used elsewhere in the app. Falls back to the bare username
-// when the user has no display name set, and to the User.ID when no
-// username is known (defensive — should not happen for live rows).
-const formatUserPill = (
-  user: Pick<UserOption, 'username' | 'displayName'> | undefined,
-  fallbackId: string
-): string => {
-  if (!user) return fallbackId;
-  const name = user.displayName?.trim();
-  if (!name || name === user.username) return user.username;
-  return `${name} (${user.username})`;
-};
 
 const Page = () => (
   // The backend's PATCH /collections/:id permits the row's owner,
@@ -482,12 +469,7 @@ const EditForm: React.FC<{ collectionID: string }> = ({ collectionID }) => {
           onChange={(_, v) => {
             if (v) setOwnerID(v.id);
           }}
-          getOptionLabel={(u) =>
-            formatUserPill(
-              { username: u.username, displayName: u.displayName },
-              u.id
-            )
-          }
+          getOptionLabel={(u) => formatUserPill(u).primary}
           isOptionEqualToValue={(a, b) => a.id === b.id}
           renderInput={(params) => (
             <TextField
@@ -505,10 +487,7 @@ const EditForm: React.FC<{ collectionID: string }> = ({ collectionID }) => {
               props as React.HTMLAttributes<HTMLLIElement> & {
                 key?: React.Key;
               };
-            const label = formatUserPill(
-              { username: u.username, displayName: u.displayName },
-              u.id
-            );
+            const label = formatUserPill(u).primary;
             const showSubLine = u.displayName && u.displayName !== u.username;
             return (
               <li key={key} {...rest}>

@@ -38,7 +38,7 @@ import { GroupInviteLink } from '@/types';
 import { fetchApi } from '@/helpers/api';
 import { alertOnError } from '@/helpers/util';
 import { AlertDispatchContext } from '@/components/AlertProvider';
-import UserPill from './UserPill';
+import UserPill from '@/components/UserPill';
 
 interface InviteLinksPanelProps {
   groupId: string;
